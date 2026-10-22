@@ -4,7 +4,11 @@ const PROMPT = __PROMPT_09__;
 
 // ---- Keep in sync with CONFIG in 02 Validate ----
 const CONFIG = {
-  models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' },
+  llm: {
+    provider: 'openai',
+    url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    models: { fast: 'gemini-flash-lite-latest', strong: 'gemini-flash-latest' },
+  },
   sheet_id: 'PASTE_YOUR_GOOGLE_SHEET_ID',
   sheet_tab: 'runs',
 };
@@ -52,6 +56,6 @@ return [{
     failed_stage,
     error_message: `${failedNode}: ${message}`.slice(0, 500),
     config: CONFIG,
-    request: claudeRequest(CONFIG, 'fast', PROMPT, { topic, failed_stage, friendly_reason }, { maxTokens: 1000, effort: 'low' }),
+    ...aiCall(CONFIG, 'fast', PROMPT, { topic, failed_stage, friendly_reason }, { maxTokens: 2000, effort: 'low', temperature: 0.4 }),
   },
 }];

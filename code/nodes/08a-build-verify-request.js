@@ -4,9 +4,9 @@ const r = $('02 Validate').first().json;
 const { analyses } = $('06c Collect Analyses').first().json;
 const { draft_report } = $input.first().json;
 
-const request = claudeRequest(r.config, 'strong', PROMPT, {
+const call = aiCall(r.config, 'strong', PROMPT, {
   draft_report,
   analyzed_sources_json: JSON.stringify(analyses),
-}, { maxTokens: 16000, effort: 'high' });
+}, { maxTokens: 16000, effort: 'high', temperature: 0 });
 
-return [{ json: { request } }];
+return [{ json: call }];

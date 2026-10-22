@@ -46,5 +46,10 @@ const page = fill(TEMPLATE, {
   content: main + tail,
 });
 
-const binary = { report: await this.helpers.prepareBinaryData(Buffer.from(page, 'utf8'), 'index.html', 'text/html') };
+const buf = Buffer.from(page, 'utf8');
+const binary = {
+  report: this.helpers && this.helpers.prepareBinaryData
+    ? await this.helpers.prepareBinaryData(buf, 'index.html', 'text/html')
+    : { data: buf.toString('base64'), mimeType: 'text/html', fileName: 'index.html', fileExtension: 'html' },
+};
 return [{ json: { html: page }, binary }];

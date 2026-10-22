@@ -2,14 +2,22 @@
 
 // ---- Run configuration: edit these after importing ----
 const CONFIG = {
-  models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' },
+  // Free default: Google Gemini (AI Studio key, no credit card) via its OpenAI-compatible endpoint.
+  llm: {
+    provider: 'openai',
+    url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    models: { fast: 'gemini-flash-lite-latest', strong: 'gemini-flash-latest' },
+  },
+  // Groq (free tier):  { provider: 'openai', url: 'https://api.groq.com/openai/v1/chat/completions', models: { fast: '...', strong: '...' } }
+  // Claude (paid):     { provider: 'claude', models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' } }
   sheet_id: 'PASTE_YOUR_GOOGLE_SHEET_ID',
   sheet_tab: 'runs',
-  pdf_url: 'https://YOUR-GOTENBERG-HOST/forms/chromium/convert/html',
+  pdf_url: 'http://gotenberg:3000/forms/chromium/convert/html', // Gotenberg from docker-compose.yml
   max_sources: 10,          // hard cap (cost control)
   min_sources: 2,           // fewer kept sources -> insufficient-sources email
   results_per_query: 5,     // Tavily results per search query
-  candidates_to_score: 15,  // max deduped sources sent to the scorer
+  candidates_to_score: 10,  // max deduped sources sent to the scorer
+  score_batch_size: 5,      // sources scored per AI call (fewer calls for free-tier limits)
   excerpt_chars: 1500,      // scorer sees this much content
   content_chars: 12000,     // analyzer sees this much content
 };

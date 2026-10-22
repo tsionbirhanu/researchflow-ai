@@ -2,12 +2,12 @@
 const PROMPT = __PROMPT_01__;
 const r = $('02 Validate').first().json;
 
-const request = claudeRequest(r.config, 'fast', PROMPT, {
+const call = aiCall(r.config, 'fast', PROMPT, {
   topic: r.topic,
   question: r.question,
   depth: r.depth,
   style: r.style,
   max_age_years: r.max_age_years,
-}, { maxTokens: 2000, effort: 'low' });
+}, { maxTokens: 4000, effort: 'low', temperature: 0.2 });
 
-return [{ json: { request } }];
+return [{ json: call }];

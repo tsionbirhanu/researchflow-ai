@@ -29,6 +29,8 @@ async function run(wf, name, input, refs = {}) {
 }
 
 const claudeText = text => ({ content: [{ type: 'thinking', thinking: '' }, { type: 'text', text }], stop_reason: 'end_turn' });
+const openaiText = (text, finish_reason = 'stop') => ({ choices: [{ index: 0, message: { role: 'assistant', content: text }, finish_reason }] });
+const CLAUDE_LLM = { provider: 'claude', models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' } };
 
 const FORM = {
   Topic: 'Remote work productivity',
@@ -65,15 +67,32 @@ test('02 Validate rejects a bad email and an empty topic', async () => {
   await assert.rejects(run(MAIN, '02 Validate', [{ ...FORM, Topic: ' ' }]), /topic is required/);
 });
 
-test('03a builds a fast request with no sampling parameters', async () => {
+test('03a defaults to a free Gemini request (OpenAI-compatible)', async () => {
   const [out] = await run(MAIN, '03a Build Plan Request', [{}], { '02 Validate': RUN });
-  const req = out.json.request;
-  assert.equal(req.model, 'claude-haiku-5-5');
-  assert.deepEqual(req.thinking, { type: 'disabled' });
-  assert.equal(req.output_config.effort, 'low');
-  for (const k of ['temperature', 'top_p', 'top_k']) assert.ok(!(k in req), `${k} must not be sent`);
-  assert.ok(req.messages[0].content.includes('Topic: Remote work productivity'));
-  assert.ok(!/\{\{(topic|depth|style)\}\}/.test(req.messages[0].content), 'placeholders filled');
+  const { request, request_url, request_headers } = out.json;
+  assert.match(request_url, /generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions$/);
+  assert.equal(request.model, 'gemini-flash-lite-latest');
+  assert.equal(request.messages[0].role, 'system');
+  assert.equal(request.temperature, 0.2);
+  assert.deepEqual(request_headers, {});
+  assert.ok(request.messages[1].content.includes('Topic: Remote work productivity'));
+  assert.ok(!/\{\{(topic|depth|style)\}\}/.test(request.messages[1].content), 'placeholders filled');
+});
+
+test('03a with the Claude provider sends effort and no sampling parameters', async () => {
+  const [out] = await run(MAIN, '03a Build Plan Request', [{}], { '02 Validate': { ...RUN, config: { ...RUN.config, llm: CLAUDE_LLM } } });
+  const { request, request_url, request_headers } = out.json;
+  assert.equal(request_url, 'https://api.anthropic.com/v1/messages');
+  assert.equal(request_headers['anthropic-version'], '2026-10-21');
+  assert.equal(request.model, 'claude-haiku-5-5');
+  assert.deepEqual(request.thinking, { type: 'disabled' });
+  assert.equal(request.output_config.effort, 'low');
+  for (const k of ['temperature', 'top_p', 'top_k']) assert.ok(!(k in request), `${k} must not be sent`);
+});
+
+test('03c parses an OpenAI-style response', async () => {
+  const [out] = await run(MAIN, '03c Parse Plan', [openaiText(JSON.stringify(PLAN))], { '02 Validate': RUN });
+  assert.equal(out.json.refined_topic, PLAN.refined_topic);
 });
 
 test('03c parses fenced JSON after a thinking block', async () => {
@@ -113,14 +132,28 @@ test('04e attaches extracted text and drops unreadable pages', async () => {
   assert.equal(out.json.has_candidates, true);
 });
 
-test('05c keeps scored sources in order, skips failures, ignores model URLs', async () => {
-  const cands = ['a', 'b', 'c', 'd'].map(k => ({ url: `https://${k}.com`, title: k, content: 'text' }));
-  const score = (o, keep = true) => claudeText(JSON.stringify({
-    url: 'https://hallucinated.example', relevance_score: o, credibility_score: o, overall_score: o, keep, is_recent_enough: true,
-  }));
+test('05a batches candidates into scoring calls', async () => {
+  const cands = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(k => ({ url: `https://${k}.com`, title: k, content: 'text '.repeat(50) }));
+  const out = await run(MAIN, '05a Build Score Requests', [{ candidates: cands }], { '02 Validate': RUN, '03c Parse Plan': PLAN });
+  assert.equal(out.length, 2, '7 candidates at 5 per call = 2 calls');
+  const prompt = out[1].json.request.messages[1].content;
+  assert.ok(prompt.includes('=== SOURCE 2 ===') && prompt.includes('URL: https://g.com'));
+  assert.ok(!prompt.includes('=== SOURCE 3 ==='));
+});
+
+test('05c pairs batch scores with candidates, skips failed batches, ignores model URLs', async () => {
+  const cands = ['a', 'b', 'c', 'd', 'e'].map(k => ({ url: `https://${k}.com`, title: k, content: 'text' }));
+  const s = (source_index, o, keep = true) => ({
+    source_index, url: 'https://hallucinated.example', relevance_score: o, credibility_score: o, overall_score: o, keep, is_recent_enough: true,
+  });
+  const cfg = { ...RUN.config, score_batch_size: 2 };
   const [out] = await run(MAIN, '05c Select Top Sources',
-    [score(6), score(9), { error: { message: 'timeout' } }, score(8, false)],
-    { '02 Validate': { ...RUN, num_sources: 5 }, '04e Attach Content': { candidates: cands } });
+    [
+      openaiText(JSON.stringify({ scores: [s(2, 9), s(1, 6)] })), // a, b (out of order on purpose)
+      { error: { message: 'timeout' } },                             // c, d skipped
+      claudeText(JSON.stringify({ scores: [s(1, 8, false)] })),      // e rejected
+    ],
+    { '02 Validate': { ...RUN, num_sources: 5, config: cfg }, '04e Attach Content': { candidates: cands } });
   assert.deepEqual(out.json.kept.map(k => k.url), ['https://b.com', 'https://a.com']);
   assert.equal(out.json.scored_count, 3);
   assert.equal(out.json.enough, true);
@@ -149,16 +182,22 @@ test('06c fails the run when fewer than 2 sources survive', async () => {
     { '02 Validate': RUN, '05c Select Top Sources': { kept: KEPT } }), /only 1 source/);
 });
 
-test('07a builds a strong request with server-side fallback', async () => {
-  const [out] = await run(MAIN, '07a Build Write Request', [{ analyses: ANALYSES }], { '02 Validate': RUN, '03c Parse Plan': PLAN });
-  const req = out.json.request;
-  assert.equal(req.model, 'claude-sonnet-5-5');
-  assert.equal(req.fallbacks, 'default');
-  assert.ok(!('thinking' in req) && !('temperature' in req));
+test('07a uses the strong model; Claude adds server-side fallback', async () => {
+  const [gem] = await run(MAIN, '07a Build Write Request', [{ analyses: ANALYSES }], { '02 Validate': RUN, '03c Parse Plan': PLAN });
+  assert.equal(gem.json.request.model, 'gemini-flash-latest');
+  assert.equal(gem.json.request.temperature, 0.4);
+
+  const claudeRun = { ...RUN, config: { ...RUN.config, llm: CLAUDE_LLM } };
+  const [cl] = await run(MAIN, '07a Build Write Request', [{ analyses: ANALYSES }], { '02 Validate': claudeRun, '03c Parse Plan': PLAN });
+  assert.equal(cl.json.request.model, 'claude-sonnet-5-5');
+  assert.equal(cl.json.request.fallbacks, 'default');
+  assert.equal(cl.json.request_headers['anthropic-beta'], 'server-side-fallback-2026-07-01');
+  assert.ok(!('thinking' in cl.json.request) && !('temperature' in cl.json.request));
 });
 
-test('07c refuses a truncated report', async () => {
+test('07c refuses a truncated report from either provider', async () => {
   await assert.rejects(run(MAIN, '07c Extract Draft', [{ ...claudeText('# T\n' + 'x'.repeat(300)), stop_reason: 'max_tokens' }]), /cut off/);
+  await assert.rejects(run(MAIN, '07c Extract Draft', [openaiText('# T\n' + 'x'.repeat(300), 'length')]), /cut off/);
 });
 
 const DRAFT = '# Remote Work Report\n*Generated on 2026-10-23*\n\n## Executive Summary\nIt helps [1].\n\n## Key Findings\n- Finding [2][9]\n\n## Sources\n1. Made up source http://fake.example\n' + ' '.repeat(200);
@@ -218,10 +257,12 @@ test('E03 still logs when the execution lookup failed', async () => {
   assert.equal(out.json.run_id, 'exec_7');
 });
 
-test('no request anywhere sends sampling parameters', () => {
+test('AI nodes take URL, headers and body from the item; per-item calls are rate-limited', () => {
   for (const wf of [MAIN, ERR]) {
-    for (const n of wf.nodes.filter(n => n.type === 'n8n-nodes-base.httpRequest')) {
-      assert.ok(!/temperature|top_p|top_k/.test(JSON.stringify(n.parameters)), `${n.name}`);
+    for (const n of wf.nodes.filter(n => / AI: /.test(n.name))) {
+      assert.equal(n.parameters.url, '={{ $json.request_url }}', n.name);
+      assert.ok(!/temperature|top_p|top_k/.test(JSON.stringify(n.parameters)), `${n.name} hardcodes sampling params`);
+      if (n.onError) assert.equal(n.parameters.options.batching.batch.batchSize, 1, n.name);
     }
   }
 });

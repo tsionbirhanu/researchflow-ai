@@ -4,7 +4,7 @@ const r = $('02 Validate').first().json;
 const plan = $('03c Parse Plan').first().json;
 const { analyses } = $input.first().json;
 
-const request = claudeRequest(r.config, 'strong', PROMPT, {
+const call = aiCall(r.config, 'strong', PROMPT, {
   refined_topic: plan.refined_topic,
   main_question: plan.main_question,
   sub_questions: numberedList(plan.sub_questions),
@@ -13,6 +13,6 @@ const request = claudeRequest(r.config, 'strong', PROMPT, {
   language: r.language,
   today: today(),
   analyzed_sources_json: JSON.stringify(analyses),
-}, { maxTokens: 16000, effort: 'medium' });
+}, { maxTokens: 16000, effort: 'medium', temperature: 0.4 });
 
-return [{ json: { request } }];
+return [{ json: call }];

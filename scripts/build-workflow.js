@@ -14,8 +14,6 @@ const crypto = require('crypto');
 const ROOT = path.resolve(__dirname, '..');
 const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g, '\n');
 
-const ANTHROPIC_VERSION = '2026-10-21';
-const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 const SHEET_COLUMNS = [
   'run_id', 'timestamp', 'email', 'topic', 'depth', 'style', 'num_sources_requested',
   'sources_used', 'confidence', 'verdict', 'status', 'duration_sec', 'error_message',
@@ -26,7 +24,7 @@ const SHEET_COLUMNS = [
 function loadPrompts() {
   const prompts = {};
   for (const f of fs.readdirSync(path.join(ROOT, 'prompts'))) {
-    const m = f.match(/^(\d\d)-.*\.md$/);
+    const m = f.match(/^(\d\d[a-z]?)-.*\.md$/);
     if (!m) continue;
     const md = read(`prompts/${f}`);
     const block = heading => {
@@ -46,7 +44,7 @@ const TEMPLATES = { REPORT: read('templates/report.html') };
 
 function codeFor(file) {
   let body = read(`code/nodes/${file}`);
-  body = body.replace(/__PROMPT_(\d\d)__/g, (m, n) => {
+  body = body.replace(/__PROMPT_(\d\d[a-z]?)__/g, (m, n) => {
     if (!PROMPTS[n]) throw new Error(`${file}: unknown prompt ${n}`);
     return JSON.stringify(PROMPTS[n]);
   });
@@ -70,29 +68,35 @@ function node(name, type, typeVersion, position, parameters, extra = {}) {
   return { parameters, id: uuid(name), name, type, typeVersion, position, ...extra };
 }
 
-const RETRY = { retryOnFail: true, maxTries: 3, waitBetweenTries: 3000 };
+const RETRY = { retryOnFail: true, maxTries: 3, waitBetweenTries: 5000 };
 const CONTINUE = { onError: 'continueRegularOutput' };
 
 const code = (name, pos, file, extra = {}) =>
   node(name, 'n8n-nodes-base.code', 2, pos, { jsCode: codeFor(file) }, extra);
 
-function claude(name, pos, { strong = false, perItem = false } = {}) {
-  const headers = [{ name: 'anthropic-version', value: ANTHROPIC_VERSION }];
-  if (strong) headers.push({ name: 'anthropic-beta', value: FALLBACK_BETA });
+// LLM call. URL, headers and body come from the item built by aiCall() in code/lib/helpers.js,
+// so switching provider (Gemini, Groq, Claude) is a CONFIG change, not a workflow change.
+// Per-item calls run one at a time, 12 s apart, to stay under free-tier per-minute limits.
+function ai(name, pos, { strong = false, perItem = false } = {}) {
   const options = { timeout: strong ? 300000 : 120000 };
-  if (perItem) options.batching = { batch: { batchSize: 3, batchInterval: 1000 } };
+  if (perItem) options.batching = { batch: { batchSize: 1, batchInterval: 12000 } };
   return node(name, 'n8n-nodes-base.httpRequest', 4.2, pos, {
     method: 'POST',
-    url: 'https://api.anthropic.com/v1/messages',
+    url: '={{ $json.request_url }}',
     authentication: 'genericCredentialType',
     genericAuthType: 'httpHeaderAuth',
     sendHeaders: true,
-    headerParameters: { parameters: headers },
+    specifyHeaders: 'json',
+    jsonHeaders: '={{ JSON.stringify($json.request_headers || {}) }}',
     sendBody: true,
     specifyBody: 'json',
     jsonBody: '={{ JSON.stringify($json.request) }}',
     options,
-  }, { ...RETRY, ...(perItem ? CONTINUE : {}), notes: 'Credential: Header Auth "Anthropic API" (x-api-key)' });
+  }, {
+    ...RETRY,
+    ...(perItem ? CONTINUE : {}),
+    notes: 'Credential: Header Auth "LLM API". Gemini/Groq: Authorization = Bearer <key>. Claude: x-api-key = <key>.',
+  });
 }
 
 function tavily(name, pos, endpoint, jsonBody, extra = {}) {
@@ -166,7 +170,7 @@ function buildMain() {
     sticky('Stage 1: Intake', [-120, 120], 1080, 400, '## 1. Intake\nForm → validate → confirmation email → log `started`.\nEdit **CONFIG** in `02 Validate` after importing.'),
     sticky('Stage 2: Plan', [X(4) - 120, 120], 720, 400, '## 2. Plan\nPrompt 01: sub-questions + search queries (fast model).', 5),
     sticky('Stage 3: Search', [X(7) - 120, 120], 1440, 400, '## 3. Search\nTavily per query → merge + dedupe by URL → extract missing page text.\nBroken or paywalled pages are dropped, not fatal.', 4),
-    sticky('Stage 4: Score', [X(13) - 120, 120], 960, 400, '## 4. Score\nPrompt 02 per source (fast) → keep the top N. Fewer than 2 → fallback email.', 6),
+    sticky('Stage 4: Score', [X(13) - 120, 120], 960, 400, '## 4. Score\nPrompt 02b, 5 sources per call (fast) → keep the top N. Fewer than 2 → fallback email.', 6),
     sticky('Stage 4b: Insufficient sources', [X(17) - 120, 520], 1200, 300, '## Insufficient sources\nPrompt 10 email → log `insufficient_sources`.', 3),
     sticky('Stage 5: Analyze', [X(17) - 120, 120], 720, 400, '## 5. Analyze\nPrompt 03 per source (fast). Failed sources are skipped.', 5),
     sticky('Stage 6: Synthesize', [X(20) - 120, 120], 720, 400, '## 6. Synthesize\nPrompt 04: cited Markdown report (strong model).', 4),
@@ -213,7 +217,7 @@ function buildMain() {
     }),
 
     code('03a Build Plan Request', [X(4), Y], '03a-build-plan.js'),
-    claude('03b Claude: Plan', [X(5), Y]),
+    ai('03b AI: Plan', [X(5), Y]),
     code('03c Parse Plan', [X(6), Y], '03c-parse-plan.js'),
 
     code('04a Split Queries', [X(7), Y], '04a-split-queries.js'),
@@ -225,12 +229,12 @@ function buildMain() {
     ifTrue('04f Any Sources?', [X(12), Y], '={{ $json.has_candidates }}'),
 
     code('05a Build Score Requests', [X(13), Y], '05a-build-score-requests.js'),
-    claude('05b Claude: Score', [X(14), Y], { perItem: true }),
+    ai('05b AI: Score', [X(14), Y], { perItem: true }),
     code('05c Select Top Sources', [X(15), Y], '05c-select-top-sources.js'),
     ifTrue('05d Enough Sources?', [X(16), Y], '={{ $json.enough }}'),
 
     code('10a Build Fallback Request', [X(17), Y + 340], '10a-build-fallback-request.js'),
-    claude('10b Claude: Fallback Email', [X(18), Y + 340], { perItem: true }),
+    ai('10b AI: Fallback Email', [X(18), Y + 340], { perItem: true }),
     code('10c Parse Fallback Email', [X(19), Y + 340], '10c-parse-fallback-email.js'),
     gmail('10d Send Fallback Email', [X(20), Y + 340], {
       to: `={{ ${V}.email }}`, subject: '={{ $json.subject }}', message: '={{ $json.body_html }}',
@@ -249,19 +253,19 @@ function buildMain() {
     }),
 
     code('06a Build Analyze Requests', [X(17), Y], '06a-build-analyze-requests.js'),
-    claude('06b Claude: Analyze', [X(18), Y], { perItem: true }),
+    ai('06b AI: Analyze', [X(18), Y], { perItem: true }),
     code('06c Collect Analyses', [X(19), Y], '06c-collect-analyses.js'),
 
     code('07a Build Write Request', [X(20), Y], '07a-build-write-request.js'),
-    claude('07b Claude: Write Report', [X(21), Y], { strong: true }),
+    ai('07b AI: Write Report', [X(21), Y], { strong: true }),
     code('07c Extract Draft', [X(22), Y], '07c-extract-draft.js'),
 
     code('08a Build Verify Request', [X(23), Y], '08a-build-verify-request.js'),
-    claude('08b Claude: Fact-Check', [X(24), Y], { strong: true, perItem: true }),
+    ai('08b AI: Fact-Check', [X(24), Y], { strong: true, perItem: true }),
     code('08c Parse Verification', [X(25), Y], '08c-parse-verification.js'),
     ifTrue('08d Needs Revision?', [X(26), Y], '={{ $json.needs_revision }}'),
     code('08e Build Revise Request', [X(27), Y - 260], '08e-build-revise-request.js'),
-    claude('08f Claude: Revise', [X(28), Y - 260], { strong: true, perItem: true }),
+    ai('08f AI: Revise', [X(28), Y - 260], { strong: true, perItem: true }),
     code('08g Take Revision', [X(29), Y - 260], '08g-take-revision.js'),
 
     code('09a Prepare Report', [X(30), Y], '09a-prepare-report.js'),
@@ -310,20 +314,20 @@ function buildMain() {
 
   const links = [
     ['01 Form', '02 Validate'], ['02 Validate', '02a Send Confirmation'], ['02a Send Confirmation', '02b Log Started'],
-    ['02b Log Started', '03a Build Plan Request'], ['03a Build Plan Request', '03b Claude: Plan'], ['03b Claude: Plan', '03c Parse Plan'],
+    ['02b Log Started', '03a Build Plan Request'], ['03a Build Plan Request', '03b AI: Plan'], ['03b AI: Plan', '03c Parse Plan'],
     ['03c Parse Plan', '04a Split Queries'], ['04a Split Queries', '04b Tavily Search'], ['04b Tavily Search', '04c Merge & Dedupe'],
     ['04c Merge & Dedupe', '04d Tavily Extract'], ['04d Tavily Extract', '04e Attach Content'], ['04e Attach Content', '04f Any Sources?'],
     ['04f Any Sources?', '05a Build Score Requests', 0], ['04f Any Sources?', '10a Build Fallback Request', 1],
-    ['05a Build Score Requests', '05b Claude: Score'], ['05b Claude: Score', '05c Select Top Sources'], ['05c Select Top Sources', '05d Enough Sources?'],
+    ['05a Build Score Requests', '05b AI: Score'], ['05b AI: Score', '05c Select Top Sources'], ['05c Select Top Sources', '05d Enough Sources?'],
     ['05d Enough Sources?', '06a Build Analyze Requests', 0], ['05d Enough Sources?', '10a Build Fallback Request', 1],
-    ['10a Build Fallback Request', '10b Claude: Fallback Email'], ['10b Claude: Fallback Email', '10c Parse Fallback Email'],
+    ['10a Build Fallback Request', '10b AI: Fallback Email'], ['10b AI: Fallback Email', '10c Parse Fallback Email'],
     ['10c Parse Fallback Email', '10d Send Fallback Email'], ['10d Send Fallback Email', '10e Log Insufficient'],
-    ['06a Build Analyze Requests', '06b Claude: Analyze'], ['06b Claude: Analyze', '06c Collect Analyses'],
-    ['06c Collect Analyses', '07a Build Write Request'], ['07a Build Write Request', '07b Claude: Write Report'], ['07b Claude: Write Report', '07c Extract Draft'],
-    ['07c Extract Draft', '08a Build Verify Request'], ['08a Build Verify Request', '08b Claude: Fact-Check'], ['08b Claude: Fact-Check', '08c Parse Verification'],
+    ['06a Build Analyze Requests', '06b AI: Analyze'], ['06b AI: Analyze', '06c Collect Analyses'],
+    ['06c Collect Analyses', '07a Build Write Request'], ['07a Build Write Request', '07b AI: Write Report'], ['07b AI: Write Report', '07c Extract Draft'],
+    ['07c Extract Draft', '08a Build Verify Request'], ['08a Build Verify Request', '08b AI: Fact-Check'], ['08b AI: Fact-Check', '08c Parse Verification'],
     ['08c Parse Verification', '08d Needs Revision?'],
     ['08d Needs Revision?', '08e Build Revise Request', 0], ['08d Needs Revision?', '09a Prepare Report', 1],
-    ['08e Build Revise Request', '08f Claude: Revise'], ['08f Claude: Revise', '08g Take Revision'], ['08g Take Revision', '09a Prepare Report'],
+    ['08e Build Revise Request', '08f AI: Revise'], ['08f AI: Revise', '08g Take Revision'], ['08g Take Revision', '09a Prepare Report'],
     ['09a Prepare Report', '09b Markdown to HTML'], ['09b Markdown to HTML', '09c Build HTML'], ['09c Build HTML', '09d HTML to PDF'],
     ['09d HTML to PDF', '09e PDF Ready?'],
     ['09e PDF Ready?', '09f Email Report + PDF', 0], ['09e PDF Ready?', '09g Email Report (no PDF)', 1],
@@ -352,7 +356,7 @@ function buildErrorHandler() {
     }, { ...RETRY, ...CONTINUE, alwaysOutputData: true, notes: 'Credential: Header Auth "n8n API" (X-N8N-API-KEY)' }),
     code('E03 Build Failure Context', [480, 300], 'e03-build-failure-context.js'),
     ifTrue('E04 Has Email?', [720, 300], '={{ $json.has_email }}'),
-    claude('E05 Claude: Failure Email', [960, 200], { perItem: true }),
+    ai('E05 AI: Failure Email', [960, 200], { perItem: true }),
     code('E06 Parse Failure Email', [1200, 200], 'e06-parse-failure-email.js'),
     gmail('E07 Send Failure Email', [1440, 200], {
       to: `={{ ${C}.email }}`, subject: '={{ $json.subject }}', message: '={{ $json.body_html }}', continueOnFail: true,
@@ -373,8 +377,8 @@ function buildErrorHandler() {
   const links = [
     ['E01 Error Trigger', 'E02 Fetch Failed Execution'], ['E02 Fetch Failed Execution', 'E03 Build Failure Context'],
     ['E03 Build Failure Context', 'E04 Has Email?'],
-    ['E04 Has Email?', 'E05 Claude: Failure Email', 0], ['E04 Has Email?', 'E08 Log Failed', 1],
-    ['E05 Claude: Failure Email', 'E06 Parse Failure Email'], ['E06 Parse Failure Email', 'E07 Send Failure Email'],
+    ['E04 Has Email?', 'E05 AI: Failure Email', 0], ['E04 Has Email?', 'E08 Log Failed', 1],
+    ['E05 AI: Failure Email', 'E06 Parse Failure Email'], ['E06 Parse Failure Email', 'E07 Send Failure Email'],
     ['E07 Send Failure Email', 'E08 Log Failed'],
   ];
   return workflow('AI Research Pipeline v2: Error Handler', nodes, links, { executionOrder: 'v1' });

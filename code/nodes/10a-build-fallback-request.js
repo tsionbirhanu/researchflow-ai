@@ -4,10 +4,10 @@ const r = $('02 Validate').first().json;
 const plan = $('03c Parse Plan').first().json;
 const kept_count = Number($input.first().json.kept_count) || 0;
 
-const request = claudeRequest(r.config, 'fast', PROMPT, {
+const call = aiCall(r.config, 'fast', PROMPT, {
   topic: r.topic,
   kept_count,
   search_queries: plan.search_queries.map(q => q.query).join('; '),
-}, { maxTokens: 1000, effort: 'low' });
+}, { maxTokens: 2000, effort: 'low', temperature: 0.3 });
 
-return [{ json: { request, kept_count } }];
+return [{ json: { ...call, kept_count } }];
