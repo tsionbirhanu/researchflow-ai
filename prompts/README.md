@@ -1,6 +1,8 @@
 # Prompts
 
-One file per AI call in the pipeline. Paste the **System** and **User** blocks into the matching n8n AI node and map each `{{variable}}` to an n8n expression.
+One file per AI call in the pipeline. These files are the source of truth: `npm run build` injects the **System** and **User** blocks into the workflow's Code nodes, and `{{variable}}` placeholders are filled at run time. After editing a prompt, rebuild and re-import.
+
+Prompts 07 and 08 are kept as specs: the workflow uses [`templates/report.html`](../templates/report.html) (built from Prompt 07's requirements) and a fixed confirmation email, which is cheaper and more predictable.
 
 | # | Prompt | Stage | Model | Effort | Output |
 |---|---|---|---|---|---|
@@ -15,4 +17,4 @@ One file per AI call in the pipeline. Paste the **System** and **User** blocks i
 | 09 | [Failure Email](09-failure-email.md) | Error | fast | low | JSON |
 | 10 | [Insufficient Sources Fallback](10-insufficient-sources-fallback.md) | Score | fast | low | JSON |
 
-Parse every JSON output with [`code/parse-ai-json.js`](../code/parse-ai-json.js).
+JSON outputs are parsed with `parseJson()` in [`code/lib/helpers.js`](../code/lib/helpers.js). For a hand-built node, use [`code/parse-ai-json.js`](../code/parse-ai-json.js).
