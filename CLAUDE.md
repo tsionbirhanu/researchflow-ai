@@ -10,12 +10,12 @@ This is my own original project. It is inspired by a simple "form → search →
 
 ## 2. Tech stack
 
-- **Automation:** n8n (cloud)
-- **AI model:** Claude API (use whichever model I specify; default to a fast model for scoring/analysis and a stronger model for writing/verification)
+- **Automation:** n8n, self-hosted with Docker (free); n8n Cloud also works
+- **AI model:** must stay free. Default: Google Gemini free tier via its OpenAI-compatible endpoint. Claude API is an optional paid alternative. Use a fast model for scoring/analysis and a stronger model for writing/verification.
 - **Search:** Tavily API (search + extract)
 - **Logging:** Google Sheets
 - **Email:** Gmail node
-- **PDF:** HTML-to-PDF (Gotenberg or an HTML-to-PDF API)
+- **PDF:** Gotenberg, self-hosted in the same Docker setup
 
 ## 3. Form inputs
 
@@ -49,8 +49,8 @@ This is my own original project. It is inspired by a simple "form → search →
 3. **Cite everything.** Every factual claim in the report ends with a citation like `[1]` or `[2][4]`.
 4. **Be honest about uncertainty.** If sources are thin, conflicting, or old, say so in the report.
 5. **Fail gracefully.** A broken or paywalled URL must be skipped, not crash the run. Always suggest a fallback.
-6. **Cost control.** Cap sources at 10. Use the cheaper model for scoring/analysis. Keep prompts tight.
-7. **No sampling parameters.** Claude API version `2026-10-21` rejects `temperature`, `top_p` and `top_k` on every model. Control cost and depth with `output_config.effort` instead: `low` for planning, scoring, analysis and emails (fast model, thinking disabled); `medium` for writing and revising; `high` for verification.
+6. **Cost control.** Everything must run on free tiers. Cap sources at 10, batch where possible (scoring is 5 sources per call), and space out calls to respect free-tier rate limits. Keep prompts tight.
+7. **Low randomness.** For OpenAI-compatible providers (Gemini, Groq): temperature 0 to 0.3 for planning, scoring, analysis and verification, up to 0.5 for writing. For the Claude API, version `2026-10-21` rejects `temperature`, `top_p` and `top_k`, so use `output_config.effort` instead: `low` for the fast model, `medium` for writing and revising, `high` for verification.
 8. **Explain briefly, then show.** Short reasoning, then the exact node config, expression, or code.
 9. When I paste an error or execution output, diagnose the root cause first, then give the fix.
 10. Do not copy anyone else's workflow. Help me build and improve my own.

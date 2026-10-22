@@ -7,7 +7,8 @@ Prompts 07 and 08 are kept as specs: the workflow uses [`templates/report.html`]
 | # | Prompt | Stage | Model | Effort | Output |
 |---|---|---|---|---|---|
 | 01 | [Research Planner](01-research-planner.md) | Plan | fast | low | JSON |
-| 02 | [Source Scorer](02-source-scorer.md) | Score | fast | low | JSON |
+| 02 | [Source Scorer](02-source-scorer.md) | Score (single-source spec) | fast | low | JSON |
+| 02b | [Source Scorer, batch](02b-source-scorer-batch.md) | Score (used by the workflow) | fast | low | JSON |
 | 03 | [Source Analyzer](03-source-analyzer.md) | Analyze | fast | low | JSON |
 | 04 | [Report Writer](04-report-writer.md) | Synthesize | strong | medium | Markdown |
 | 05 | [Fact-Checker / Verifier](05-fact-checker.md) | Verify | strong | high | JSON |

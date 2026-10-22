@@ -1,98 +1,129 @@
-# Setup Guide
+# Setup Guide (100% free)
 
-This guide takes you from an empty n8n instance to a working pipeline, in about 30 minutes.
+Everything below is free and needs no credit card. Plan on about 45 minutes the first time.
 
-## 1. Accounts and keys
-
-| Service | What you need | Where |
+| Piece | Free option | Limits to know |
 |---|---|---|
-| Claude API | API key (`sk-ant-...`) | [console.anthropic.com](https://console.anthropic.com) → API Keys |
-| Tavily | API key (`tvly-...`) | [app.tavily.com](https://app.tavily.com) |
-| Google | An account for Sheets and Gmail | n8n's OAuth flow |
-| PDF service | A Gotenberg URL | Self-host with Docker (`docker run -p 3000:3000 gotenberg/gotenberg:8`) on a server n8n can reach, or use a hosted Gotenberg |
-| n8n API | API key (for the error handler only) | n8n → Settings → n8n API |
+| AI model | Google Gemini via AI Studio | Low free rate limits (a few requests per minute, limited requests per day). The pipeline is tuned for this. |
+| Web search | Tavily free plan | 1,000 credits per month, roughly 50 to 70 reports |
+| n8n | Self-hosted with Docker on your computer | Runs while your computer is on |
+| PDF | Gotenberg in the same Docker setup | None |
+| Sheets + Gmail | Your Google account | None for this use |
 
-## 2. Create the log sheet
+## 1. Start n8n and Gotenberg
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/), which is free for personal use, and start it.
+2. In the project folder, run:
+
+   ```bash
+   docker compose up -d
+   ```
+
+3. Open <http://localhost:5678> and create your n8n owner account. It is local to your machine.
+
+To stop it, run `docker compose down`. Your workflows and credentials are kept.
+
+## 2. Get the free API keys
+
+**Gemini (AI model)**
+1. Go to [aistudio.google.com](https://aistudio.google.com) and sign in with Google.
+2. Click **Get API key → Create API key**. No billing is needed.
+3. Check which models your key can use for free in AI Studio. The workflow uses the aliases `gemini-flash-lite-latest` (fast steps) and `gemini-flash-latest` (writing and fact-checking). If either one is not available to you, change it in `CONFIG` (step 6).
+
+**Tavily (web search)**
+1. Sign up at [app.tavily.com](https://app.tavily.com) and copy your API key (`tvly-...`).
+
+**n8n API (for failure emails)**
+1. In n8n, go to **Settings → n8n API → Create an API key**.
+
+## 3. Set up Google access (Sheets and Gmail)
+
+A self-hosted n8n needs its own Google OAuth app. It is free:
+
+1. Open the [Google Cloud Console](https://console.cloud.google.com/) and create a project, for example `researchflow`.
+2. Go to **APIs & Services → Library** and enable **Gmail API**, **Google Sheets API** and **Google Drive API**.
+3. Go to **APIs & Services → OAuth consent screen**, choose **External**, fill in the app name and your email, and add your own Gmail address under **Test users**.
+4. Go to **APIs & Services → Credentials → Create credentials → OAuth client ID**, choose **Web application**, and add this redirect URI:
+
+   ```
+   http://localhost:5678/rest/oauth2-credential/callback
+   ```
+
+5. Copy the **Client ID** and **Client secret**.
+
+## 4. Create the log sheet
 
 1. Create a Google Sheet and rename the first tab to `runs`.
-2. Paste this header row into row 1, one name per column:
+2. Paste this header row into row 1:
 
    ```
    run_id	timestamp	email	topic	depth	style	num_sources_requested	sources_used	confidence	verdict	status	duration_sec	error_message
    ```
 
-3. Copy the sheet ID from its URL: `https://docs.google.com/spreadsheets/d/<THIS PART>/edit`.
+3. Copy the sheet ID from the URL: `https://docs.google.com/spreadsheets/d/<THIS PART>/edit`.
 
-## 3. Create credentials in n8n
+## 5. Create credentials in n8n
 
-Go to **Credentials → Add credential** and create these:
+Go to **Credentials → Add credential**:
 
-| Name (suggested) | Type | Fields |
+| Name | Type | Fields |
 |---|---|---|
-| Anthropic API | Header Auth | Name: `x-api-key`, Value: your Claude key |
+| LLM API | Header Auth | Name: `Authorization`, Value: `Bearer <your Gemini key>` |
 | Tavily API | Header Auth | Name: `Authorization`, Value: `Bearer tvly-...` |
 | n8n API | Header Auth | Name: `X-N8N-API-KEY`, Value: your n8n API key |
-| Google Sheets | Google Sheets OAuth2 API | Sign in with Google |
-| Gmail | Gmail OAuth2 | Sign in with Google |
+| Google Sheets | Google Sheets OAuth2 API | Client ID + secret from step 3, then **Sign in with Google** |
+| Gmail | Gmail OAuth2 | Same Client ID + secret, then **Sign in with Google** |
 
-## 4. Import the workflows
+## 6. Import and configure the workflows
 
-1. **Workflows → Add workflow → ⋯ → Import from File**, then pick `workflows/research-pipeline.json`.
-2. Do the same for `workflows/error-handler.json`.
+1. **Workflows → Add workflow → ⋯ → Import from File**, then pick `workflows/research-pipeline.json`. Repeat for `workflows/error-handler.json`.
+2. Open each node that shows a warning and select its credential:
 
-## 5. Connect credentials
+   | Nodes | Credential |
+   |---|---|
+   | `03b`, `05b`, `06b`, `07b`, `08b`, `08f`, `10b`, `E05` (AI) | LLM API |
+   | `04b`, `04d` (Tavily) | Tavily API |
+   | `02b`, `09h`, `10e`, `E08` | Google Sheets |
+   | `02a`, `09f`, `09g`, `10d`, `E07` | Gmail |
+   | `E02 Fetch Failed Execution` | n8n API |
 
-Open each node with a warning icon and select its credential:
+3. Open **`02 Validate`** and set `sheet_id` in the `CONFIG` block. The Gemini URL, models and the Gotenberg URL (`http://gotenberg:3000/...`) are already set for the free setup.
+4. Open **`E03 Build Failure Context`** in the error workflow and set the same `sheet_id`.
+5. In the main workflow, go to **⋯ → Settings → Error Workflow**, choose **AI Research Pipeline v2: Error Handler**, and save.
 
-| Nodes | Credential |
-|---|---|
-| `03b`, `05b`, `06b`, `07b`, `08b`, `08f`, `10b`, `E05` (Claude) | Anthropic API |
-| `04b`, `04d` (Tavily) | Tavily API |
-| `02b`, `09h`, `10e`, `E08` (Sheets) | Google Sheets |
-| `02a`, `09f`, `09g`, `10d`, `E07` (Gmail) | Gmail |
-| `E02 Fetch Failed Execution` | n8n API |
+## 7. First test (keep it small)
 
-The HTTP Request nodes include a note naming the credential they expect.
+1. Open `01 Form` and click **Test step**. Submit a simple topic with **Quick** depth and **3** sources.
+2. A Quick run makes about 8 to 10 AI requests and takes a few minutes, because calls are spaced 12 seconds apart to respect the free limits.
+3. You should get a confirmation email, then the report with a PDF, and the sheet row should change from `started` to `completed`.
+4. When it works, click **Activate**. The form's **Production URL** works on your computer at `http://localhost:5678/form/...`.
 
-## 6. Edit the configuration
+## Staying inside the free limits
 
-Open **`02 Validate`** in the main workflow and edit the `CONFIG` block at the top:
+- Test with **Quick** depth and **3 to 5** sources. Deep runs with 10 sources use more requests.
+- If you see **HTTP 429** (too many requests), wait a minute (per-minute limit) or until the next day (daily limit), then run again.
+- To spread the load, use different models for fast and strong steps; each model has its own quota.
+- Other free OpenAI-compatible providers (such as Groq) also work. Change `CONFIG.llm.url` and `models`, and update the LLM API credential.
+
+## Switching to Claude later
+
+If you get Claude API credit later, set this in `02 Validate` and `E03`:
 
 ```javascript
-const CONFIG = {
-  models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' },
-  sheet_id: 'PASTE_YOUR_GOOGLE_SHEET_ID',
-  sheet_tab: 'runs',
-  pdf_url: 'https://YOUR-GOTENBERG-HOST/forms/chromium/convert/html',
-  ...
-};
+llm: { provider: 'claude', models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' } },
 ```
 
-Then open **`E03 Build Failure Context`** in the error workflow and set the same `models`, `sheet_id` and `sheet_tab`.
-
-> Editing a Code node in n8n changes only your instance. To keep the repo in sync, edit the file in `code/nodes/`, run `npm run build`, and re-import the workflow.
-
-## 7. Connect the error workflow
-
-1. Save the error workflow.
-2. In the main workflow, go to **⋯ → Settings → Error Workflow**, select **AI Research Pipeline v2: Error Handler**, and save.
-
-## 8. Test, then activate
-
-1. Open `01 Form`, click **Test step**, and submit a simple topic with **Quick** depth and **3** sources.
-2. Watch the execution. You should receive a confirmation email, then the report with a PDF, and the sheet row should go from `started` to `completed`.
-3. Work through [`testing-checklist.md`](testing-checklist.md).
-4. **Activate** the workflow and share the form's **Production URL**.
+Then change the **LLM API** credential to Name `x-api-key`, Value `<your Claude key>`. Nothing else changes.
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Claude node returns 400 `temperature` | An old request body that still sends sampling parameters | Re-import the workflow; API version `2026-10-21` rejects `temperature` |
-| Claude node returns 401 | Wrong header name or key | The header must be exactly `x-api-key` |
-| Claude node returns 400 about `fallbacks` | Your account doesn't have the server-side fallback beta | Remove `fallbacks` in `code/lib/helpers.js` and the `anthropic-beta` header in `scripts/build-workflow.js`, then rebuild |
-| `04b Tavily Search` returns 401 | Missing `Bearer ` prefix | Value must be `Bearer tvly-...` |
-| Report email arrives without a PDF | `09d HTML to PDF` failed (by design the email still goes out) | Check that `pdf_url` is reachable from n8n and ends in `/forms/chromium/convert/html` |
-| Sheets nodes error "sheet not found" | Tab name mismatch | The tab must be named `runs`, or change `sheet_tab` |
-| Failure email never arrives | `E02` cannot read executions | Check the n8n API credential; n8n API access may require a paid n8n Cloud plan. The run is still logged as `failed`. |
-| Deep runs time out | n8n Cloud execution limit | Use fewer sources, or raise the workflow timeout in Settings if your plan allows |
+| AI node returns 429 | Free-tier rate limit | Wait and retry; use Quick depth and fewer sources |
+| AI node returns 404 / model not found | The model alias isn't available to your key | Pick a free model listed in AI Studio and set it in `CONFIG.llm.models` |
+| AI node returns 400/401 | Wrong credential format | Gemini needs `Authorization: Bearer <key>` |
+| `04b Tavily Search` returns 401 or 432 | Wrong key, or monthly credits used up | Check the key and your usage at app.tavily.com |
+| Email arrives without a PDF | Gotenberg not reachable | Run `docker compose ps`; `pdf_url` must be `http://gotenberg:3000/forms/chromium/convert/html` |
+| Google sign-in says "access blocked" | You're not a test user | Add your Gmail under OAuth consent screen → Test users |
+| Sheets error "sheet not found" | Tab name mismatch | Name the tab `runs`, or change `sheet_tab` |
+| Failure email never arrives | `E02` can't read executions | Check the n8n API credential; the run is still logged as `failed` |
