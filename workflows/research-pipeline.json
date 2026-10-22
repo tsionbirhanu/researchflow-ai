@@ -1,0 +1,2171 @@
+{
+  "name": "AI Research Pipeline v2",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 1. Intake\nForm → validate → confirmation email → log `started`.\nEdit **CONFIG** in `02 Validate` after importing.",
+        "width": 1080,
+        "height": 400,
+        "color": 7
+      },
+      "id": "c8991377-5bb2-4214-a60a-c5eb2173d931",
+      "name": "Stage 1: Intake",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Plan\nPrompt 01: sub-questions + search queries (fast model).",
+        "width": 720,
+        "height": 400,
+        "color": 5
+      },
+      "id": "66e80d54-25a6-4c1d-aa48-967c6d83c753",
+      "name": "Stage 2: Plan",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        840,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Search\nTavily per query → merge + dedupe by URL → extract missing page text.\nBroken or paywalled pages are dropped, not fatal.",
+        "width": 1440,
+        "height": 400,
+        "color": 4
+      },
+      "id": "b14c0793-4bc0-4dc8-ab73-c1976df4cbf8",
+      "name": "Stage 3: Search",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 4. Score\nPrompt 02 per source (fast) → keep the top N. Fewer than 2 → fallback email.",
+        "width": 960,
+        "height": 400,
+        "color": 6
+      },
+      "id": "2beb2674-f93b-4b04-a8d6-d1c7bf302664",
+      "name": "Stage 4: Score",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3000,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Insufficient sources\nPrompt 10 email → log `insufficient_sources`.",
+        "width": 1200,
+        "height": 300,
+        "color": 3
+      },
+      "id": "674aec84-63d0-47d9-a5ab-d5120ecbe744",
+      "name": "Stage 4b: Insufficient sources",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3960,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 5. Analyze\nPrompt 03 per source (fast). Failed sources are skipped.",
+        "width": 720,
+        "height": 400,
+        "color": 5
+      },
+      "id": "d16efdfc-e839-4e20-a63e-75a709c219a3",
+      "name": "Stage 5: Analyze",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3960,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 6. Synthesize\nPrompt 04: cited Markdown report (strong model).",
+        "width": 720,
+        "height": 400,
+        "color": 4
+      },
+      "id": "be590e96-f5f9-4990-a283-04bc5e9de98f",
+      "name": "Stage 6: Synthesize",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4680,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 7. Verify\nPrompt 05 fact-check (strong). Issues → Prompt 06 revision.",
+        "width": 1680,
+        "height": 600,
+        "color": 6
+      },
+      "id": "4ca77d5b-b6f1-4a15-afa7-6c17c71e9284",
+      "name": "Stage 7: Verify",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5400,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 8. Deliver\nSources list rebuilt from real URLs → HTML → PDF (Gotenberg) → Gmail → log `completed`.\nIf the PDF fails, the email goes out without it.",
+        "width": 2160,
+        "height": 520,
+        "color": 4
+      },
+      "id": "5c3fcd8a-1562-47b1-aac0-0e0b9f552b9f",
+      "name": "Stage 8: Deliver",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        7080,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "AI Research Pipeline",
+        "formDescription": "Request a cited, fact-checked research report. It arrives by email with a PDF attached.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Topic",
+              "placeholder": "e.g. Impact of remote work on productivity",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Specific question",
+              "fieldType": "textarea",
+              "placeholder": "Optional"
+            },
+            {
+              "fieldLabel": "Number of sources",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "3"
+                  },
+                  {
+                    "option": "5"
+                  },
+                  {
+                    "option": "8"
+                  },
+                  {
+                    "option": "10"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Depth",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Quick"
+                  },
+                  {
+                    "option": "Standard"
+                  },
+                  {
+                    "option": "Deep"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Style",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Student"
+                  },
+                  {
+                    "option": "Business"
+                  },
+                  {
+                    "option": "Technical"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Language",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "English"
+                  },
+                  {
+                    "option": "Spanish"
+                  },
+                  {
+                    "option": "French"
+                  },
+                  {
+                    "option": "German"
+                  },
+                  {
+                    "option": "Portuguese"
+                  },
+                  {
+                    "option": "Arabic"
+                  },
+                  {
+                    "option": "Chinese"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Max source age (years)",
+              "fieldType": "number",
+              "placeholder": "Optional, e.g. 3"
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "you@example.com",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d61e92ce-cd97-4655-a00e-5349e65cc97c",
+      "name": "01 Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "8054d7c7-1a0a-42a4-a3d5-d11e19683943"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 02 Validate: normalize the form submission, create the run, build the confirmation email.\n\n// ---- Run configuration: edit these after importing ----\nconst CONFIG = {\n  models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' },\n  sheet_id: 'PASTE_YOUR_GOOGLE_SHEET_ID',\n  sheet_tab: 'runs',\n  pdf_url: 'https://YOUR-GOTENBERG-HOST/forms/chromium/convert/html',\n  max_sources: 10,          // hard cap (cost control)\n  min_sources: 2,           // fewer kept sources -> insufficient-sources email\n  results_per_query: 5,     // Tavily results per search query\n  candidates_to_score: 15,  // max deduped sources sent to the scorer\n  excerpt_chars: 1500,      // scorer sees this much content\n  content_chars: 12000,     // analyzer sees this much content\n};\n\nconst f = $input.first().json;\nconst pick = (...keys) => {\n  for (const k of keys) {\n    const v = f[k];\n    if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();\n  }\n  return '';\n};\nconst oneOf = (value, allowed, fallback) => (allowed.includes(value) ? value : fallback);\n\nconst topic = pick('Topic', 'topic');\nconst email = pick('Email', 'email').toLowerCase();\nif (topic.length < 3) throw new Error('Validation: the topic is required (at least 3 characters).');\nif (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new Error('Validation: a valid email address is required.');\n\nconst requested = parseInt(pick('Number of sources', 'num_sources'), 10);\nconst num_sources = Math.min(CONFIG.max_sources, Math.max(1, Number.isFinite(requested) ? requested : 5));\nconst depth = oneOf(pick('Depth', 'depth'), ['Quick', 'Standard', 'Deep'], 'Standard');\nconst style = oneOf(pick('Style', 'style'), ['Student', 'Business', 'Technical'], 'Student');\nconst language = pick('Language', 'language') || 'English';\nconst age = parseFloat(pick('Max source age (years)', 'max_age_years'));\nconst max_age_years = Number.isFinite(age) && age > 0 ? age : '';\nconst question = pick('Specific question', 'question');\n\nconst eta = { Quick: '3 to 5 minutes', Standard: '5 to 8 minutes', Deep: '8 to 12 minutes' }[depth];\nconst run_id = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;\n\nconst confirmation = {\n  subject: `Research started: ${topic}`,\n  body_html:\n    `<p>Hi,</p>` +\n    `<p>Your research request on <strong>${esc(topic)}</strong> was received and is now running ` +\n    `(${num_sources} sources, ${depth} depth).</p>` +\n    `<p>It usually takes about ${eta}. The report will arrive in this inbox with a PDF attached.</p>` +\n    `<p>AI Research Pipeline</p>`,\n};\n\nreturn [{\n  json: {\n    run_id,\n    started_at: new Date().toISOString(),\n    topic, question, num_sources, depth, style, language, max_age_years, email, eta,\n    config: CONFIG,\n    confirmation,\n  },\n}];\n"
+      },
+      "id": "d0f9a8d0-d861-4aa2-a7e9-d2140abd9651",
+      "name": "02 Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('02 Validate').first().json.email }}",
+        "subject": "={{ $('02 Validate').first().json.confirmation.subject }}",
+        "emailType": "html",
+        "message": "={{ $('02 Validate').first().json.confirmation.body_html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "81640d0c-ac3b-411a-a69a-621b7b4eb33f",
+      "name": "02a Send Confirmation",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "webhookId": "73fe9812-9150-406f-ac80-07a122120019"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('02 Validate').first().json.config.sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('02 Validate').first().json.config.sheet_tab }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $('02 Validate').first().json.run_id }}",
+            "timestamp": "={{ $('02 Validate').first().json.started_at }}",
+            "email": "={{ $('02 Validate').first().json.email }}",
+            "topic": "={{ $('02 Validate').first().json.topic }}",
+            "depth": "={{ $('02 Validate').first().json.depth }}",
+            "style": "={{ $('02 Validate').first().json.style }}",
+            "num_sources_requested": "={{ $('02 Validate').first().json.num_sources }}",
+            "status": "started"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "topic",
+              "displayName": "topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "depth",
+              "displayName": "depth",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "style",
+              "displayName": "style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "num_sources_requested",
+              "displayName": "num_sources_requested",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sources_used",
+              "displayName": "sources_used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "verdict",
+              "displayName": "verdict",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "duration_sec",
+              "displayName": "duration_sec",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "53439776-8149-46ad-afe7-6ae2df4732b4",
+      "name": "02b Log Started",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 03a Build Plan Request: Prompt 01 (Research Planner), fast model.\nconst PROMPT = {\"system\":\"You are a research planning assistant. You turn a research request into a clear plan. You output ONLY valid JSON, with no markdown fences and no extra text.\",\"user\":\"Create a research plan for this request.\\n\\nTopic: {{topic}}\\nSpecific question (may be empty): {{question}}\\nDepth: {{depth}}   (Quick = 3 sub-questions, Standard = 4, Deep = 5)\\nAudience style: {{style}}\\nOnly use sources from the last {{max_age_years}} years (ignore if empty).\\n\\nReturn JSON in exactly this shape:\\n{\\n  \\\"refined_topic\\\": \\\"string, a clear one-line version of the topic\\\",\\n  \\\"main_question\\\": \\\"string, the central question the report must answer\\\",\\n  \\\"sub_questions\\\": [\\\"string\\\", \\\"...\\\"],\\n  \\\"search_queries\\\": [\\n    {\\\"query\\\": \\\"string\\\", \\\"purpose\\\": \\\"string\\\"}\\n  ],\\n  \\\"key_terms\\\": [\\\"string\\\", \\\"...\\\"]\\n}\\n\\nRules:\\n- Create 3 to 5 sub-questions based on the Depth value.\\n- Create 3 to 5 search queries. Each must be short (under 10 words), specific, and different from the others.\\n- If a specific question was given, make it the main_question.\\n- Do not answer the questions. Only plan.\"};\nconst r = $('02 Validate').first().json;\n\nconst request = claudeRequest(r.config, 'fast', PROMPT, {\n  topic: r.topic,\n  question: r.question,\n  depth: r.depth,\n  style: r.style,\n  max_age_years: r.max_age_years,\n}, { maxTokens: 2000, effort: 'low' });\n\nreturn [{ json: { request } }];\n"
+      },
+      "id": "52b688b6-1727-4a2d-a598-7c7255a1d268",
+      "name": "03a Build Plan Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2026-10-21"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "0ce270e7-9fc1-402f-af97-f547a63cef90",
+      "name": "03b Claude: Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Credential: Header Auth \"Anthropic API\" (x-api-key)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 03c Parse Plan: validate the planner JSON before searching.\nconst r = $('02 Validate').first().json;\nconst plan = parseJson(responseText($input.first().json), 'Plan');\n\nconst queries = (plan.search_queries || [])\n  .map(q => (typeof q === 'string' ? { query: q, purpose: '' } : q))\n  .filter(q => q && q.query && String(q.query).trim())\n  .slice(0, 5);\nif (!queries.length) throw new Error('Plan: the planner returned no search queries.');\n\nreturn [{\n  json: {\n    refined_topic: plan.refined_topic || r.topic,\n    main_question: r.question || plan.main_question || r.topic,\n    sub_questions: (plan.sub_questions || []).filter(Boolean).slice(0, 5),\n    search_queries: queries,\n    key_terms: plan.key_terms || [],\n  },\n}];\n"
+      },
+      "id": "71108c0a-665a-4c12-a5ae-b720a929811d",
+      "name": "03c Parse Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 04a Split Queries: one item per search query, each carrying its Tavily request body.\nconst cfg = $('02 Validate').first().json.config;\nconst plan = $input.first().json;\n\nreturn plan.search_queries.map(q => ({\n  json: {\n    query: q.query,\n    purpose: q.purpose || '',\n    body: {\n      query: q.query,\n      search_depth: 'advanced',\n      max_results: cfg.results_per_query,\n      include_raw_content: true,\n    },\n  },\n}));\n"
+      },
+      "id": "be5d27bb-428d-411a-a311-3b84746d8a09",
+      "name": "04a Split Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 90000,
+          "batching": {
+            "batch": {
+              "batchSize": 2,
+              "batchInterval": 500
+            }
+          }
+        }
+      },
+      "id": "43f19965-f2ae-4d27-a47e-978c8502d988",
+      "name": "04b Tavily Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Credential: Header Auth \"Tavily API\" (Authorization: Bearer tvly-...)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 04c Merge & Dedupe: combine all search results, dedupe by normalized URL.\n// Failed searches (Continue On Fail) have no results array and are skipped.\nconst cfg = $('02 Validate').first().json.config;\nconst byUrl = new Map();\nlet failed_queries = 0;\n\nfor (const item of $input.all()) {\n  const results = item.json.results;\n  if (!Array.isArray(results)) { failed_queries++; continue; }\n  for (const x of results) {\n    if (!x || !x.url) continue;\n    const key = normalizeUrl(x.url);\n    const prev = byUrl.get(key);\n    const score = Number(x.score) || 0;\n    if (!prev || score > prev.search_score) {\n      byUrl.set(key, {\n        url: x.url,\n        title: x.title || '',\n        published_date: x.published_date || null,\n        snippet: x.content || '',\n        raw_content: x.raw_content || (prev && prev.raw_content) || '',\n        search_score: score,\n      });\n    }\n  }\n}\n\nconst candidates = [...byUrl.values()]\n  .sort((a, b) => b.search_score - a.search_score)\n  .slice(0, cfg.candidates_to_score);\n\nreturn [{\n  json: {\n    candidates,\n    // URLs Tavily returned without page text; 04d fetches them with /extract\n    urls_to_extract: candidates.filter(c => !c.raw_content).map(c => c.url),\n    failed_queries,\n  },\n}];\n"
+      },
+      "id": "c4eae269-70ad-468b-a94e-801734231d3d",
+      "name": "04c Merge & Dedupe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/extract",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ urls: $json.urls_to_extract }) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "03d6b5db-c795-40cf-a657-95fd0875c6cd",
+      "name": "04d Tavily Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Credential: Header Auth \"Tavily API\" (Authorization: Bearer tvly-...)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 04e Attach Content: merge extracted page text into candidates and drop unreadable pages.\n// A failed /extract call (Continue On Fail) just means we fall back to search snippets.\nconst MIN_CHARS = 200;\nconst { candidates } = $('04c Merge & Dedupe').first().json;\n\nconst extracted = new Map();\nfor (const x of ($input.first().json.results || [])) {\n  if (x && x.url && x.raw_content) extracted.set(normalizeUrl(x.url), x.raw_content);\n}\n\nconst readable = candidates\n  .map(c => {\n    const content = (c.raw_content || extracted.get(normalizeUrl(c.url)) || c.snippet || '').trim();\n    const { raw_content, ...rest } = c;\n    return { ...rest, content };\n  })\n  .filter(c => c.content.length >= MIN_CHARS); // paywalls, broken pages, empty extracts\n\nreturn [{\n  json: {\n    candidates: readable,\n    candidate_count: readable.length,\n    skipped_count: candidates.length - readable.length,\n    has_candidates: readable.length > 0,\n    kept_count: 0,\n  },\n}];\n"
+      },
+      "id": "4e4d478c-adea-434d-abd6-b4b10fbd3a10",
+      "name": "04e Attach Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "422ff406-f0d6-4d25-ac37-cec08b3e98cf",
+              "leftValue": "={{ $json.has_candidates }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ed43fb60-2b95-438c-a090-6e26a07e011e",
+      "name": "04f Any Sources?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 05a Build Score Requests: Prompt 02 (Source Scorer), one fast-model call per candidate.\nconst PROMPT = {\"system\":\"You are a strict source evaluator. You judge how relevant and credible a web source is for a research task. You output ONLY valid JSON, with no markdown fences and no extra text.\",\"user\":\"Research main question: {{main_question}}\\nTopic: {{refined_topic}}\\n\\nEvaluate this source.\\n\\nURL: {{url}}\\nTitle: {{title}}\\nPublished date (may be unknown): {{published_date}}\\nToday's date: {{today}}\\nRecency limit: sources must be from the last {{max_age_years}} years (if empty, every source counts as recent enough).\\nContent excerpt (first 1500 characters):\\n\\\"\\\"\\\"\\n{{content_excerpt}}\\n\\\"\\\"\\\"\\n\\nReturn JSON in exactly this shape:\\n{\\n  \\\"url\\\": \\\"string\\\",\\n  \\\"relevance_score\\\": 1-10,\\n  \\\"credibility_score\\\": 1-10,\\n  \\\"overall_score\\\": 1-10,\\n  \\\"source_type\\\": \\\"academic | government | news | company | blog | forum | other\\\",\\n  \\\"is_recent_enough\\\": true or false,\\n  \\\"keep\\\": true or false,\\n  \\\"reason\\\": \\\"one short sentence\\\"\\n}\\n\\nScoring guide:\\n- Credibility 9-10: peer-reviewed, government, major institutions, established news with named authors.\\n- Credibility 6-8: reputable industry sites, well-known publications.\\n- Credibility 1-5: anonymous blogs, forums, content farms, heavily promotional pages, unclear authorship.\\n- Relevance reflects how directly the content answers the main question.\\n- Set keep=false if overall_score is below 5, the page is mostly ads or paywall text, or it is clearly off-topic.\\n- Judge only from the information provided. Do not invent details.\"};\nconst r = $('02 Validate').first().json;\nconst plan = $('03c Parse Plan').first().json;\nconst { candidates } = $input.first().json;\n\nreturn candidates.map(c => ({\n  json: {\n    url: c.url,\n    request: claudeRequest(r.config, 'fast', PROMPT, {\n      main_question: plan.main_question,\n      refined_topic: plan.refined_topic,\n      url: c.url,\n      title: c.title,\n      published_date: c.published_date || 'unknown',\n      today: today(),\n      max_age_years: r.max_age_years,\n      content_excerpt: c.content.slice(0, r.config.excerpt_chars),\n    }, { maxTokens: 800, effort: 'low' }),\n  },\n}));\n"
+      },
+      "id": "880b2011-6f2a-4082-a67c-e99ab13c41e8",
+      "name": "05a Build Score Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2026-10-21"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 120000,
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "ddf3c143-d629-4750-af08-f37bc7d4bf85",
+      "name": "05b Claude: Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3360,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Credential: Header Auth \"Anthropic API\" (x-api-key)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 05c Select Top Sources: pair each score with its candidate, filter, sort, keep the top N.\n// Output items from the HTTP node are in the same order as its input items.\nconst r = $('02 Validate').first().json;\nconst { candidates } = $('04e Attach Content').first().json;\n\nconst scored = [];\n$input.all().forEach((item, i) => {\n  const c = candidates[i];\n  if (!c) return;\n  let s;\n  try { s = parseJson(responseText(item.json), 'Score'); } catch (e) { return; } // failed score: skip source\n  scored.push({\n    ...c,\n    url: c.url, // never trust a URL echoed back by the model\n    relevance_score: Number(s.relevance_score) || 0,\n    credibility_score: Number(s.credibility_score) || 0,\n    overall_score: Number(s.overall_score) || 0,\n    source_type: s.source_type || 'other',\n    is_recent_enough: s.is_recent_enough !== false,\n    keep: s.keep === true,\n    reason: s.reason || '',\n  });\n});\n\nconst kept = scored\n  .filter(s => s.keep && s.overall_score >= 5 && (!r.max_age_years || s.is_recent_enough))\n  .sort((a, b) => b.overall_score - a.overall_score || b.credibility_score - a.credibility_score)\n  .slice(0, r.num_sources);\n\nreturn [{\n  json: {\n    kept,\n    kept_count: kept.length,\n    scored_count: scored.length,\n    enough: kept.length >= r.config.min_sources,\n  },\n}];\n"
+      },
+      "id": "c8c825b7-4ca7-4a0c-ac6b-2d9fe15ca483",
+      "name": "05c Select Top Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a937d0f1-b810-476e-a81e-067848c6fced",
+              "leftValue": "={{ $json.enough }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2c7a3675-ac9e-4d16-a9e4-93ce09e40e84",
+      "name": "05d Enough Sources?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 10a Build Fallback Request: Prompt 10 (Insufficient Sources), fast model.\nconst PROMPT = {\"system\":null,\"user\":\"The research pipeline found too few reliable sources for this topic.\\n\\nTopic: {{topic}}\\nSources found that passed scoring: {{kept_count}}\\nSearch queries used: {{search_queries}}\\n\\nWrite a short email to the user that:\\n1. Explains honestly that reliable sources were limited.\\n2. Suggests 3 alternative, broader or reworded topics they could try.\\n3. Invites them to resubmit the form.\\n\\nUnder 100 words. Output JSON: {\\\"subject\\\": \\\"string\\\", \\\"body_html\\\": \\\"string\\\"}\"};\nconst r = $('02 Validate').first().json;\nconst plan = $('03c Parse Plan').first().json;\nconst kept_count = Number($input.first().json.kept_count) || 0;\n\nconst request = claudeRequest(r.config, 'fast', PROMPT, {\n  topic: r.topic,\n  kept_count,\n  search_queries: plan.search_queries.map(q => q.query).join('; '),\n}, { maxTokens: 1000, effort: 'low' });\n\nreturn [{ json: { request, kept_count } }];\n"
+      },
+      "id": "bc3045a1-5ec9-4054-a1d3-872bc9a4cfbd",
+      "name": "10a Build Fallback Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4080,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2026-10-21"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 120000,
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "791f7832-35ff-433f-a50b-2db6fd0b6609",
+      "name": "10b Claude: Fallback Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4320,
+        640
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Credential: Header Auth \"Anthropic API\" (x-api-key)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 10c Parse Fallback Email: use the AI email, or a fixed one if that call failed.\nconst r = $('02 Validate').first().json;\nlet email;\ntry {\n  email = parseJson(responseText($input.first().json), 'Fallback email');\n} catch (e) {\n  email = {};\n}\nif (!email.subject || !email.body_html) {\n  email = {\n    subject: `Not enough reliable sources for: ${r.topic}`,\n    body_html:\n      `<p>Hi,</p><p>We searched for <strong>${esc(r.topic)}</strong> but found too few reliable sources ` +\n      `to write a trustworthy report.</p><p>Try a broader or reworded topic, or a longer source age limit, ` +\n      `and submit the form again.</p><p>AI Research Pipeline</p>`,\n  };\n}\nreturn [{ json: { ...email, kept_count: $('10a Build Fallback Request').first().json.kept_count } }];\n"
+      },
+      "id": "ea1d8319-a123-4d44-ae45-008d2c279a23",
+      "name": "10c Parse Fallback Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4560,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('02 Validate').first().json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.body_html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "597841cd-6967-4616-a07f-15a9df42e1ea",
+      "name": "10d Send Fallback Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4800,
+        640
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "webhookId": "196d1c03-cf89-460d-a42a-ae0d6e9883f0"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('02 Validate').first().json.config.sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('02 Validate').first().json.config.sheet_tab }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $('02 Validate').first().json.run_id }}",
+            "timestamp": "={{ $('02 Validate').first().json.started_at }}",
+            "email": "={{ $('02 Validate').first().json.email }}",
+            "topic": "={{ $('02 Validate').first().json.topic }}",
+            "depth": "={{ $('02 Validate').first().json.depth }}",
+            "style": "={{ $('02 Validate').first().json.style }}",
+            "num_sources_requested": "={{ $('02 Validate').first().json.num_sources }}",
+            "sources_used": "={{ $('10c Parse Fallback Email').first().json.kept_count }}",
+            "status": "insufficient_sources",
+            "duration_sec": "={{ Math.round((Date.now() - new Date($('02 Validate').first().json.started_at).getTime()) / 1000) }}"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "topic",
+              "displayName": "topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "depth",
+              "displayName": "depth",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "style",
+              "displayName": "style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "num_sources_requested",
+              "displayName": "num_sources_requested",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sources_used",
+              "displayName": "sources_used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "verdict",
+              "displayName": "verdict",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "duration_sec",
+              "displayName": "duration_sec",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [
+            "run_id"
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1973bd8-75a8-49d3-a7eb-2b1dae862491",
+      "name": "10e Log Insufficient",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        5040,
+        640
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 06a Build Analyze Requests: Prompt 03 (Source Analyzer), one fast-model call per kept source.\nconst PROMPT = {\"system\":\"You are a careful research analyst. You extract only what a source actually says. You never add outside knowledge and never guess. You output ONLY valid JSON, with no markdown fences and no extra text.\",\"user\":\"Research main question: {{main_question}}\\nSub-questions:\\n{{sub_questions}}\\n\\nAnalyze the source below. Source number: {{source_id}}\\n\\nURL: {{url}}\\nTitle: {{title}}\\nFull content:\\n\\\"\\\"\\\"\\n{{content}}\\n\\\"\\\"\\\"\\n\\nReturn JSON in exactly this shape:\\n{\\n  \\\"source_id\\\": {{source_id}},\\n  \\\"url\\\": \\\"string\\\",\\n  \\\"title\\\": \\\"string\\\",\\n  \\\"publisher_or_author\\\": \\\"string or null\\\",\\n  \\\"published_date\\\": \\\"string or null\\\",\\n  \\\"summary\\\": \\\"2-3 sentence summary of what this source says that is relevant\\\",\\n  \\\"key_facts\\\": [\\\"string, each a single factual statement from the source\\\"],\\n  \\\"statistics\\\": [\\n    {\\\"stat\\\": \\\"string\\\", \\\"context\\\": \\\"string\\\"}\\n  ],\\n  \\\"short_quotes\\\": [\\\"verbatim quote under 15 words\\\"],\\n  \\\"answers_sub_questions\\\": [\\n    {\\\"sub_question\\\": \\\"string\\\", \\\"answer_from_source\\\": \\\"string or null\\\"}\\n  ],\\n  \\\"limitations\\\": \\\"string, any bias, age, or weakness of this source, or null\\\"\\n}\\n\\nRules:\\n- Use ONLY information found in the content above.\\n- If a field is not present in the source, use null or an empty array.\\n- Statistics must be copied exactly, with their context.\\n- Quotes must be verbatim and under 15 words. Prefer paraphrase in key_facts.\"};\nconst r = $('02 Validate').first().json;\nconst plan = $('03c Parse Plan').first().json;\nconst { kept } = $input.first().json;\n\nreturn kept.map((s, i) => ({\n  json: {\n    url: s.url,\n    request: claudeRequest(r.config, 'fast', PROMPT, {\n      main_question: plan.main_question,\n      sub_questions: numberedList(plan.sub_questions),\n      source_id: i + 1,\n      url: s.url,\n      title: s.title,\n      content: s.content.slice(0, r.config.content_chars),\n    }, { maxTokens: 3000, effort: 'low' }),\n  },\n}));\n"
+      },
+      "id": "7e50765c-15ae-48fe-a122-58f2665ada34",
+      "name": "06a Build Analyze Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2026-10-21"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 120000,
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "d16a8d9b-406b-4242-a431-666804a915f4",
+      "name": "06b Claude: Analyze",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4320,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Credential: Header Auth \"Anthropic API\" (x-api-key)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 06c Collect Analyses: parse each analysis, skip failures, renumber sources 1..N.\n// URL, title and scores always come from the real search data, not the model.\nconst r = $('02 Validate').first().json;\nconst { kept } = $('05c Select Top Sources').first().json;\nconst words = s => String(s).trim().split(/\\s+/).length;\n\nconst analyses = [];\n$input.all().forEach((item, i) => {\n  const src = kept[i];\n  if (!src) return;\n  let a;\n  try { a = parseJson(responseText(item.json), 'Analyze'); } catch (e) { return; }\n  analyses.push({\n    source_id: 0,\n    url: src.url,\n    title: a.title || src.title,\n    publisher_or_author: a.publisher_or_author || null,\n    published_date: a.published_date || src.published_date || null,\n    source_type: src.source_type,\n    credibility_score: src.credibility_score,\n    summary: a.summary || '',\n    key_facts: a.key_facts || [],\n    statistics: a.statistics || [],\n    short_quotes: (a.short_quotes || []).filter(q => words(q) < 15),\n    answers_sub_questions: a.answers_sub_questions || [],\n    limitations: a.limitations || null,\n  });\n});\nanalyses.forEach((a, i) => { a.source_id = i + 1; });\n\nif (analyses.length < r.config.min_sources) {\n  throw new Error(`Analyze: only ${analyses.length} source(s) could be analyzed.`);\n}\nreturn [{ json: { analyses, source_count: analyses.length } }];\n"
+      },
+      "id": "831bef21-e7e5-45f9-a5e7-c36c5b13e774",
+      "name": "06c Collect Analyses",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 07a Build Write Request: Prompt 04 (Report Writer), strong model.\nconst PROMPT = {\"system\":\"You are an expert research writer. You write clear, accurate, well-structured reports using ONLY the evidence provided. Every factual claim must carry a citation like [1] or [2][3] that matches the source numbers given. If the evidence is weak, thin, or conflicting, you say so openly. You never invent facts, statistics, quotes, names, or URLs.\",\"user\":\"Write a research report.\\n\\nTopic: {{refined_topic}}\\nMain question: {{main_question}}\\nSub-questions:\\n{{sub_questions}}\\nAudience style: {{style}}\\nDepth: {{depth}}\\nLanguage: {{language}}\\nToday's date: {{today}}\\n\\nAnalyzed sources (JSON):\\n{{analyzed_sources_json}}\\n\\nStyle guide:\\n- Student: plain language, define terms, short paragraphs, explain why things matter.\\n- Business: practical, decision-focused, highlight implications, risks, and opportunities.\\n- Technical: precise terminology, include numbers and methods, assume expert readers.\\n\\nLength guide:\\n- Quick: about 400 to 600 words total\\n- Standard: about 900 to 1300 words total\\n- Deep: about 1600 to 2200 words total\\n\\nUse exactly this structure and these headings:\\n\\n# {{title of report}}\\n*Generated on {{today}}*\\n\\n## Executive Summary\\n(Maximum 5 lines. The direct answer to the main question.)\\n\\n## Key Findings\\n(5 to 8 bullets. Each bullet ends with citations.)\\n\\n## Detailed Analysis\\n(One subsection per sub-question, with its own ### heading. Cite every claim.)\\n\\n## Conflicting Views and Limitations\\n(Where sources disagree, where evidence is weak, and what is missing. If none, say so.)\\n\\n## Confidence Level\\n(High / Medium / Low, plus 2 to 3 sentences explaining why.)\\n\\n## Suggested Follow-up Questions\\n(3 to 5 questions worth researching next.)\\n\\n## Sources\\n(Numbered list matching citation numbers: [n] Title, Publisher/Author, Date, URL.)\\n\\nHard rules:\\n- Use ONLY facts from the provided sources.\\n- Every factual sentence needs a citation.\\n- Do not cite a source number that does not exist.\\n- Do not add a fact because you \\\"know\\\" it. If the sources do not cover something, write that the available sources do not cover it.\\n- Do not quote more than 15 words from any source. Prefer paraphrase.\\n- Output Markdown only. No preamble and no closing remarks.\"};\nconst r = $('02 Validate').first().json;\nconst plan = $('03c Parse Plan').first().json;\nconst { analyses } = $input.first().json;\n\nconst request = claudeRequest(r.config, 'strong', PROMPT, {\n  refined_topic: plan.refined_topic,\n  main_question: plan.main_question,\n  sub_questions: numberedList(plan.sub_questions),\n  style: r.style,\n  depth: r.depth,\n  language: r.language,\n  today: today(),\n  analyzed_sources_json: JSON.stringify(analyses),\n}, { maxTokens: 16000, effort: 'medium' });\n\nreturn [{ json: { request } }];\n"
+      },
+      "id": "4106bc2b-eaf0-446f-a20c-25a3027b9d8e",
+      "name": "07a Build Write Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2026-10-21"
+            },
+            {
+              "name": "anthropic-beta",
+              "value": "server-side-fallback-2026-07-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "fc79d9f9-e50b-4442-a32c-732fad53e637",
+      "name": "07b Claude: Write Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5040,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "notes": "Credential: Header Auth \"Anthropic API\" (x-api-key)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 07c Extract Draft: take the Markdown report, refusing to continue with a truncated one.\nconst res = $input.first().json;\nif (res.stop_reason === 'max_tokens') throw new Error('Synthesize: the report was cut off before it finished.');\nconst draft_report = responseText(res);\nif (draft_report.length < 200) throw new Error('Synthesize: the writer returned an empty report.');\nreturn [{ json: { draft_report } }];\n"
+      },
+      "id": "b4454a79-d2b2-4c03-a8d5-638fa2e1d307",
+      "name": "07c Extract Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 08a Build Verify Request: Prompt 05 (Fact-Checker), strong model.\nconst PROMPT = {\"system\":\"You are an uncompromising fact-checker. You compare a draft report against the source evidence and flag anything unsupported, exaggerated, mis-cited, or contradictory. You output ONLY valid JSON, with no markdown fences and no extra text.\",\"user\":\"Check this draft report against the source evidence.\\n\\nDraft report (Markdown):\\n\\\"\\\"\\\"\\n{{draft_report}}\\n\\\"\\\"\\\"\\n\\nSource evidence (JSON):\\n{{analyzed_sources_json}}\\n\\nReturn JSON in exactly this shape:\\n{\\n  \\\"overall_verdict\\\": \\\"pass | pass_with_fixes | fail\\\",\\n  \\\"confidence_level\\\": \\\"High | Medium | Low\\\",\\n  \\\"confidence_reason\\\": \\\"one or two sentences\\\",\\n  \\\"issues\\\": [\\n    {\\n      \\\"type\\\": \\\"unsupported_claim | wrong_citation | exaggeration | contradiction | missing_citation | other\\\",\\n      \\\"claim\\\": \\\"the exact sentence or phrase from the draft\\\",\\n      \\\"problem\\\": \\\"what is wrong\\\",\\n      \\\"suggested_fix\\\": \\\"how to correct it, using only the source evidence\\\"\\n    }\\n  ],\\n  \\\"contradictions_between_sources\\\": [\\\"string\\\"],\\n  \\\"unsupported_claim_count\\\": 0,\\n  \\\"citation_coverage_percent\\\": 0\\n}\\n\\nRules:\\n- A claim is \\\"unsupported\\\" if no source evidence states it.\\n- A citation is \\\"wrong\\\" if the cited source does not say that.\\n- Be strict. When unsure, flag it.\\n- If there are no issues, return an empty \\\"issues\\\" array and verdict \\\"pass\\\".\"};\nconst r = $('02 Validate').first().json;\nconst { analyses } = $('06c Collect Analyses').first().json;\nconst { draft_report } = $input.first().json;\n\nconst request = claudeRequest(r.config, 'strong', PROMPT, {\n  draft_report,\n  analyzed_sources_json: JSON.stringify(analyses),\n}, { maxTokens: 16000, effort: 'high' });\n\nreturn [{ json: { request } }];\n"
+      },
+      "id": "316fbb8f-e046-4487-a87b-dbe9d4d19a44",
+      "name": "08a Build Verify Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2026-10-21"
+            },
+            {
+              "name": "anthropic-beta",
+              "value": "server-side-fallback-2026-07-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 300000,
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "c7bea419-3d1c-49a5-aa2c-3afb4177a449",
+      "name": "08b Claude: Fact-Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5760,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Credential: Header Auth \"Anthropic API\" (x-api-key)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 08c Parse Verification: normalize the fact-check. If the check itself fails,\n// deliver the draft marked \"unverified\" with Low confidence instead of failing the run.\nconst { draft_report } = $('07c Extract Draft').first().json;\nconst VERDICTS = ['pass', 'pass_with_fixes', 'fail'];\nconst LEVELS = ['High', 'Medium', 'Low'];\n\nlet v;\ntry {\n  v = parseJson(responseText($input.first().json), 'Verify');\n} catch (e) {\n  v = {\n    overall_verdict: 'unverified',\n    confidence_level: 'Low',\n    confidence_reason: 'The automatic fact-check could not be completed, so this report has not been verified.',\n    issues: [],\n  };\n}\n\nconst issues = Array.isArray(v.issues) ? v.issues : [];\nconst verdict = VERDICTS.includes(v.overall_verdict) ? v.overall_verdict : 'unverified';\n\nreturn [{\n  json: {\n    overall_verdict: verdict,\n    confidence_level: LEVELS.includes(v.confidence_level) ? v.confidence_level : 'Low',\n    confidence_reason: v.confidence_reason || '',\n    issues,\n    contradictions_between_sources: v.contradictions_between_sources || [],\n    unsupported_claim_count: Number(v.unsupported_claim_count) || 0,\n    citation_coverage_percent: Number(v.citation_coverage_percent) || 0,\n    needs_revision: (verdict === 'pass_with_fixes' || verdict === 'fail') && issues.length > 0,\n    draft_report,\n  },\n}];\n"
+      },
+      "id": "8cda28be-90b4-4916-a6fe-6e6cf6c398f0",
+      "name": "08c Parse Verification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2c038d15-a63e-4474-a780-b10e59b3bf14",
+              "leftValue": "={{ $json.needs_revision }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cb2c865e-8df8-450c-a7ca-a8e286ba8e4e",
+      "name": "08d Needs Revision?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        6240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 08e Build Revise Request: Prompt 06 (Report Reviser), strong model.\nconst PROMPT = {\"system\":\"You are a careful editor. You fix a research report using a fact-check list. You change only what is needed and you never add facts that are not in the source evidence.\",\"user\":\"Revise the draft report to fix every issue listed. Keep the same structure and headings.\\n\\nDraft report:\\n\\\"\\\"\\\"\\n{{draft_report}}\\n\\\"\\\"\\\"\\n\\nIssues to fix:\\n{{issues_json}}\\n\\nSource evidence (JSON):\\n{{analyzed_sources_json}}\\n\\nRules:\\n- Fix or remove each flagged claim. If a claim cannot be supported, delete it or say the evidence is unavailable.\\n- Correct wrong citations.\\n- Update the \\\"Conflicting Views and Limitations\\\" section to mention any contradictions found.\\n- Set the \\\"Confidence Level\\\" section to: {{confidence_level}}. Reason: {{confidence_reason}}\\n- Do not add any new facts from outside the source evidence.\\n- Output the full revised report in Markdown only. No commentary.\"};\nconst r = $('02 Validate').first().json;\nconst { analyses } = $('06c Collect Analyses').first().json;\nconst v = $input.first().json;\n\nconst request = claudeRequest(r.config, 'strong', PROMPT, {\n  draft_report: v.draft_report,\n  issues_json: JSON.stringify({ issues: v.issues, contradictions_between_sources: v.contradictions_between_sources }),\n  analyzed_sources_json: JSON.stringify(analyses),\n  confidence_level: v.confidence_level,\n  confidence_reason: v.confidence_reason,\n}, { maxTokens: 16000, effort: 'medium' });\n\nreturn [{ json: { request } }];\n"
+      },
+      "id": "1ca6e3f8-05a1-41e2-a5b7-e8a0426e1f9c",
+      "name": "08e Build Revise Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6480,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2026-10-21"
+            },
+            {
+              "name": "anthropic-beta",
+              "value": "server-side-fallback-2026-07-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 300000,
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "b64354bf-5caa-4141-a2aa-6224603bd121",
+      "name": "08f Claude: Revise",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6720,
+        40
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Credential: Header Auth \"Anthropic API\" (x-api-key)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 08g Take Revision: use the revised report; keep the draft if the revision failed or was cut off.\nconst res = $input.first().json;\nconst revised = res.stop_reason === 'max_tokens' ? '' : responseText(res);\nconst { draft_report } = $('08c Parse Verification').first().json;\nreturn [{ json: { final_markdown: revised.length >= 200 ? revised : draft_report, revised: revised.length >= 200 } }];\n"
+      },
+      "id": "5c6573ac-2243-4786-a42a-ff02828a032f",
+      "name": "08g Take Revision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6960,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 09a Prepare Report: final Markdown with citations checked and a Sources list\n// rebuilt from the real source metadata (the model's own list is discarded).\nconst v = $('08c Parse Verification').first().json;\nconst { analyses } = $('06c Collect Analyses').first().json;\nconst md = ($input.first().json.final_markdown || v.draft_report).trim();\nconst n = analyses.length;\n\n// Drop citations that point at sources that don't exist.\nlet invalid_citations = 0;\nconst body = md\n  .replace(/\\n#{1,3}\\s*Sources\\s*\\n[\\s\\S]*$/i, '')\n  .replace(/\\[(\\d+)\\]/g, (m, k) => {\n    const i = Number(k);\n    if (i >= 1 && i <= n) return m;\n    invalid_citations++;\n    return '';\n  })\n  .trim();\n\nconst sources = analyses.map(a => {\n  const meta = [a.publisher_or_author, a.published_date].filter(Boolean).join(', ');\n  return `${a.source_id}. ${a.title}${meta ? `, ${meta}` : ''}. [${a.url}](${a.url})`;\n}).join('\\n');\n\nconst titleMatch = body.match(/^#\\s+(.+)$/m);\nconst title = titleMatch ? titleMatch[1].trim() : $('03c Parse Plan').first().json.refined_topic;\n\nreturn [{\n  json: {\n    markdown: `${body}\\n\\n## Sources\\n\\n${sources}\\n`,\n    title,\n    confidence: v.confidence_level,\n    verdict: v.overall_verdict,\n    source_count: n,\n    invalid_citations,\n  },\n}];\n"
+      },
+      "id": "e461ba61-8f1f-4c6b-ab38-1fdf1380be24",
+      "name": "09a Prepare Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.markdown }}",
+        "destinationKey": "html_body",
+        "options": {}
+      },
+      "id": "54bb49b9-d8f0-4f55-a705-80a0403e3bab",
+      "name": "09b Markdown to HTML",
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        7440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// 09c Build HTML: wrap the converted report in templates/report.html and attach it\n// as a binary file (index.html) for the PDF service.\nconst TEMPLATE = \"<!doctype html>\\n<html lang=\\\"en\\\">\\n<head>\\n<meta charset=\\\"utf-8\\\">\\n<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">\\n<title>{{title}}</title>\\n<style>\\n  body { margin: 0; padding: 0; background: #ffffff; color: #1f2933; font-family: -apple-system, BlinkMacSystemFont, \\\"Segoe UI\\\", Roboto, \\\"Helvetica Neue\\\", Arial, sans-serif; font-size: 16px; line-height: 1.6; }\\n  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 24px; }\\n  .label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #52606d; }\\n  h1 { font-size: 28px; line-height: 1.25; margin: 6px 0 8px; color: #102a43; }\\n  .meta { font-size: 14px; color: #52606d; margin: 0 0 16px; }\\n  .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }\\n  .badge.high { background: #e3f9e5; color: #1f7a33; border: 1px solid #a3d9a5; }\\n  .badge.medium { background: #fff7e0; color: #8a5a00; border: 1px solid #f0c96b; }\\n  .badge.low { background: #ffe8e8; color: #a61b1b; border: 1px solid #f2a7a7; }\\n  .verdict { font-size: 13px; color: #52606d; margin: 8px 0 0; }\\n  h2 { font-size: 21px; color: #102a43; margin: 32px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #e4e7eb; }\\n  h3 { font-size: 17px; color: #243b53; margin: 22px 0 6px; }\\n  p { margin: 0 0 12px; }\\n  ul, ol { padding-left: 22px; margin: 0 0 12px; }\\n  li { margin: 0 0 6px; }\\n  a { color: #1d4ed8; }\\n  .card { background: #f0f4f8; border-left: 4px solid #334e68; border-radius: 6px; padding: 4px 20px 12px; margin: 24px 0; page-break-inside: avoid; break-inside: avoid; }\\n  .card h2 { border-bottom: none; margin-top: 14px; }\\n  sup.cite { font-size: 11px; line-height: 0; }\\n  sup.cite a { text-decoration: none; }\\n  .sources-heading ~ ol li { font-size: 14px; word-break: break-word; }\\n  .footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid #e4e7eb; font-size: 12px; color: #7b8794; }\\n  @media (max-width: 600px) { .wrap { padding: 20px 16px; } h1 { font-size: 23px; } }\\n  @media print {\\n    .wrap { max-width: none; padding: 0; }\\n    a { color: #1f2933; }\\n    h2, h3 { page-break-after: avoid; break-after: avoid; }\\n    li, p { orphans: 3; widows: 3; }\\n  }\\n</style>\\n</head>\\n<body style=\\\"margin:0;background:#ffffff;\\\">\\n<div class=\\\"wrap\\\" style=\\\"max-width:720px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1f2933;\\\">\\n  <div class=\\\"label\\\">AI Research Pipeline</div>\\n  <h1>{{title}}</h1>\\n  <p class=\\\"meta\\\">Generated on {{date}} · {{source_count}} sources · {{style}} · {{depth}}</p>\\n  <span class=\\\"badge {{badge_class}}\\\">Confidence: {{confidence}}</span>\\n  <p class=\\\"verdict\\\">{{verdict_note}}</p>\\n\\n  {{content}}\\n\\n  <div class=\\\"footer\\\">Generated automatically by AI Research Pipeline. Verify important facts with the original sources.</div>\\n</div>\\n</body>\\n</html>\\n\";\nconst report = $('09a Prepare Report').first().json;\nconst r = $('02 Validate').first().json;\nlet html = String($input.first().json.html_body || '');\n\n// The title and date live in the template header.\nhtml = html.replace(/<h1[^>]*>[\\s\\S]*?<\\/h1>\\s*/i, '');\nhtml = html.replace(/<p>\\s*<em>\\s*Generated on[\\s\\S]*?<\\/p>\\s*/i, '');\n\n// Executive Summary in a highlighted card.\nhtml = html.replace(/(<h2[^>]*>\\s*Executive Summary\\s*<\\/h2>)([\\s\\S]*?)(?=<h2)/i, '<div class=\"card summary\">$1$2</div>');\n\n// Sources: anchor each list item so citations can jump to it.\nconst parts = html.split(/(<h2[^>]*>\\s*Sources\\s*<\\/h2>)/i);\nif (parts.length === 3) {\n  let k = 0;\n  parts[2] = parts[2].replace(/<li>/g, () => `<li id=\"src-${++k}\">`);\n  parts[1] = parts[1].replace('<h2', '<h2 class=\"sources-heading\"');\n}\nlet main = parts.length === 3 ? parts[0] : html;\nconst tail = parts.length === 3 ? parts[1] + parts[2] : '';\n\n// Citations [n] -> superscript links (only in the body, not in the Sources list).\nmain = main.replace(/\\[(\\d+)\\]/g, (m, k) =>\n  Number(k) <= report.source_count ? `<sup class=\"cite\"><a href=\"#src-${k}\">[${k}]</a></sup>` : m);\n\nconst badge = { High: 'high', Medium: 'medium', Low: 'low' }[report.confidence] || 'low';\nconst verdictNote = {\n  pass: 'Fact-check passed.',\n  pass_with_fixes: 'Fact-check found issues; they were corrected before delivery.',\n  fail: 'Fact-check found significant issues; unsupported claims were corrected or removed.',\n  unverified: 'Automatic fact-check could not be completed. Verify facts against the sources.',\n}[report.verdict] || '';\n\nconst page = fill(TEMPLATE, {\n  title: esc(report.title),\n  date: today(),\n  confidence: esc(report.confidence),\n  badge_class: badge,\n  verdict_note: esc(verdictNote),\n  source_count: report.source_count,\n  style: esc(r.style),\n  depth: esc(r.depth),\n  content: main + tail,\n});\n\nconst binary = { report: await this.helpers.prepareBinaryData(Buffer.from(page, 'utf8'), 'index.html', 'text/html') };\nreturn [{ json: { html: page }, binary }];\n"
+      },
+      "id": "583b8576-b24f-44e2-aace-f3cb9790da7f",
+      "name": "09c Build HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('02 Validate').first().json.config.pdf_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Gotenberg-Output-Filename",
+              "value": "research-report"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "report"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "pdf"
+            }
+          }
+        }
+      },
+      "id": "234004bf-f80a-4c5f-a77c-30d314e83357",
+      "name": "09d HTML to PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7920,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Gotenberg Chromium HTML route. Add auth here if your PDF service needs it."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ad907573-87f3-4f05-a02a-c07feb8c2163",
+              "leftValue": "={{ !!($binary && $binary.pdf) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e7d888db-ab36-4ac6-ad58-e64f9cdaddf7",
+      "name": "09e PDF Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        8160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('02 Validate').first().json.email }}",
+        "subject": "=Research report: {{ $('09a Prepare Report').first().json.title }}",
+        "emailType": "html",
+        "message": "={{ $('09c Build HTML').first().json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "pdf"
+              }
+            ]
+          }
+        }
+      },
+      "id": "3b235be5-615f-4f26-af76-340aff216c29",
+      "name": "09f Email Report + PDF",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        8400,
+        180
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "webhookId": "7970ade0-7d9e-4b6f-ad77-61cc2c803549"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('02 Validate').first().json.email }}",
+        "subject": "=Research report: {{ $('09a Prepare Report').first().json.title }}",
+        "emailType": "html",
+        "message": "={{ $('09c Build HTML').first().json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "bd796b8e-d996-4531-a0fa-b44bdeb82a1e",
+      "name": "09g Email Report (no PDF)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        8400,
+        420
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "webhookId": "d214abd8-0a7a-4743-adb5-8ab00acc1bc0"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('02 Validate').first().json.config.sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('02 Validate').first().json.config.sheet_tab }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $('02 Validate').first().json.run_id }}",
+            "timestamp": "={{ $('02 Validate').first().json.started_at }}",
+            "email": "={{ $('02 Validate').first().json.email }}",
+            "topic": "={{ $('02 Validate').first().json.topic }}",
+            "depth": "={{ $('02 Validate').first().json.depth }}",
+            "style": "={{ $('02 Validate').first().json.style }}",
+            "num_sources_requested": "={{ $('02 Validate').first().json.num_sources }}",
+            "sources_used": "={{ $('09a Prepare Report').first().json.source_count }}",
+            "confidence": "={{ $('09a Prepare Report').first().json.confidence }}",
+            "verdict": "={{ $('09a Prepare Report').first().json.verdict }}",
+            "status": "completed",
+            "duration_sec": "={{ Math.round((Date.now() - new Date($('02 Validate').first().json.started_at).getTime()) / 1000) }}",
+            "error_message": "={{ $('09a Prepare Report').first().json.invalid_citations ? $('09a Prepare Report').first().json.invalid_citations + ' invalid citation(s) removed' : '' }}"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "topic",
+              "displayName": "topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "depth",
+              "displayName": "depth",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "style",
+              "displayName": "style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "num_sources_requested",
+              "displayName": "num_sources_requested",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sources_used",
+              "displayName": "sources_used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "verdict",
+              "displayName": "verdict",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "duration_sec",
+              "displayName": "duration_sec",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [
+            "run_id"
+          ]
+        },
+        "options": {}
+      },
+      "id": "99890527-ace0-4654-a22d-ed6f7d7f8354",
+      "name": "09h Log Completed",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        8640,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "01 Form": {
+      "main": [
+        [
+          {
+            "node": "02 Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 Validate": {
+      "main": [
+        [
+          {
+            "node": "02a Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02a Send Confirmation": {
+      "main": [
+        [
+          {
+            "node": "02b Log Started",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02b Log Started": {
+      "main": [
+        [
+          {
+            "node": "03a Build Plan Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03a Build Plan Request": {
+      "main": [
+        [
+          {
+            "node": "03b Claude: Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03b Claude: Plan": {
+      "main": [
+        [
+          {
+            "node": "03c Parse Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03c Parse Plan": {
+      "main": [
+        [
+          {
+            "node": "04a Split Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04a Split Queries": {
+      "main": [
+        [
+          {
+            "node": "04b Tavily Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04b Tavily Search": {
+      "main": [
+        [
+          {
+            "node": "04c Merge & Dedupe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04c Merge & Dedupe": {
+      "main": [
+        [
+          {
+            "node": "04d Tavily Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04d Tavily Extract": {
+      "main": [
+        [
+          {
+            "node": "04e Attach Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04e Attach Content": {
+      "main": [
+        [
+          {
+            "node": "04f Any Sources?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04f Any Sources?": {
+      "main": [
+        [
+          {
+            "node": "05a Build Score Requests",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "10a Build Fallback Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05a Build Score Requests": {
+      "main": [
+        [
+          {
+            "node": "05b Claude: Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05b Claude: Score": {
+      "main": [
+        [
+          {
+            "node": "05c Select Top Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05c Select Top Sources": {
+      "main": [
+        [
+          {
+            "node": "05d Enough Sources?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05d Enough Sources?": {
+      "main": [
+        [
+          {
+            "node": "06a Build Analyze Requests",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "10a Build Fallback Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10a Build Fallback Request": {
+      "main": [
+        [
+          {
+            "node": "10b Claude: Fallback Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10b Claude: Fallback Email": {
+      "main": [
+        [
+          {
+            "node": "10c Parse Fallback Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10c Parse Fallback Email": {
+      "main": [
+        [
+          {
+            "node": "10d Send Fallback Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10d Send Fallback Email": {
+      "main": [
+        [
+          {
+            "node": "10e Log Insufficient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06a Build Analyze Requests": {
+      "main": [
+        [
+          {
+            "node": "06b Claude: Analyze",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06b Claude: Analyze": {
+      "main": [
+        [
+          {
+            "node": "06c Collect Analyses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06c Collect Analyses": {
+      "main": [
+        [
+          {
+            "node": "07a Build Write Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07a Build Write Request": {
+      "main": [
+        [
+          {
+            "node": "07b Claude: Write Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07b Claude: Write Report": {
+      "main": [
+        [
+          {
+            "node": "07c Extract Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07c Extract Draft": {
+      "main": [
+        [
+          {
+            "node": "08a Build Verify Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08a Build Verify Request": {
+      "main": [
+        [
+          {
+            "node": "08b Claude: Fact-Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08b Claude: Fact-Check": {
+      "main": [
+        [
+          {
+            "node": "08c Parse Verification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08c Parse Verification": {
+      "main": [
+        [
+          {
+            "node": "08d Needs Revision?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08d Needs Revision?": {
+      "main": [
+        [
+          {
+            "node": "08e Build Revise Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "09a Prepare Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08e Build Revise Request": {
+      "main": [
+        [
+          {
+            "node": "08f Claude: Revise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08f Claude: Revise": {
+      "main": [
+        [
+          {
+            "node": "08g Take Revision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08g Take Revision": {
+      "main": [
+        [
+          {
+            "node": "09a Prepare Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09a Prepare Report": {
+      "main": [
+        [
+          {
+            "node": "09b Markdown to HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09b Markdown to HTML": {
+      "main": [
+        [
+          {
+            "node": "09c Build HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09c Build HTML": {
+      "main": [
+        [
+          {
+            "node": "09d HTML to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09d HTML to PDF": {
+      "main": [
+        [
+          {
+            "node": "09e PDF Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09e PDF Ready?": {
+      "main": [
+        [
+          {
+            "node": "09f Email Report + PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "09g Email Report (no PDF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09f Email Report + PDF": {
+      "main": [
+        [
+          {
+            "node": "09h Log Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09g Email Report (no PDF)": {
+      "main": [
+        [
+          {
+            "node": "09h Log Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

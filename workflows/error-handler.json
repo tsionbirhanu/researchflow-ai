@@ -1,0 +1,441 @@
+{
+  "name": "AI Research Pipeline v2: Error Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 9. Error branch\nRuns when the main workflow fails (set it as the main workflow's **Error Workflow**).\nLooks up the failed run through the n8n API to find the user's email, sends a plain-language failure email (Prompt 09), logs `failed`.\nEdit **CONFIG** in `E03` to match `02 Validate`.",
+        "width": 2200,
+        "height": 520,
+        "color": 7
+      },
+      "id": "24192c5f-17d5-4367-a43e-9614dfeade32",
+      "name": "Error branch",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        120
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e649e0d2-0120-48fc-a8e7-976751439748",
+      "name": "E01 Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ new URL($json.execution.url).origin }}/api/v1/executions/{{ $json.execution.id }}?includeData=true",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "0413a3e9-257f-4915-a92e-7c839112273b",
+      "name": "E02 Fetch Failed Execution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "notes": "Credential: Header Auth \"n8n API\" (X-N8N-API-KEY)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// E03 Build Failure Context: recover the run's form data from the failed execution\n// and prepare Prompt 09 (Failure Email).\nconst PROMPT = {\"system\":null,\"user\":\"Write a short, apologetic failure email for an automated research request that failed.\\n\\nDetails:\\n- Topic: {{topic}}\\n- Failed stage: {{failed_stage}}\\n- Plain-language reason (no technical jargon): {{friendly_reason}}\\n\\nRequirements:\\n- Apologize briefly and say the research could not be completed.\\n- Suggest what the user can try (for example: a more specific topic, fewer sources, or trying again in a few minutes).\\n- Do not include stack traces, API names, or internal error details.\\n- Under 80 words, kind and calm.\\n- Output JSON: {\\\"subject\\\": \\\"string\\\", \\\"body_html\\\": \\\"string\\\"}\"};\n\n// ---- Keep in sync with CONFIG in 02 Validate ----\nconst CONFIG = {\n  models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' },\n  sheet_id: 'PASTE_YOUR_GOOGLE_SHEET_ID',\n  sheet_tab: 'runs',\n};\n\nconst err = $('E01 Error Trigger').first().json;\nconst exec = $input.first().json; // n8n API execution (empty or error if the lookup failed)\nconst runData = (exec && exec.data && exec.data.resultData && exec.data.resultData.runData) || {};\nconst firstJson = name => {\n  try { return runData[name][0].data.main[0][0].json || {}; } catch (e) { return {}; }\n};\nconst run = firstJson('02 Validate');\nconst form = firstJson('01 Form');\n\nconst failedNode = (err.execution && err.execution.lastNodeExecuted) || (err.trigger && err.trigger.node && err.trigger.node.name) || 'unknown';\nconst message = (err.execution && err.execution.error && err.execution.error.message) || (err.trigger && err.trigger.error && err.trigger.error.message) || 'Unknown error';\n\nconst STAGES = {\n  '01': ['Intake', 'the request could not be read'],\n  '02': ['Intake', 'some of the form details were missing or invalid'],\n  '03': ['Planning', 'the research plan could not be created'],\n  '04': ['Search', 'the web search did not return usable results'],\n  '05': ['Source scoring', 'the sources could not be evaluated'],\n  '06': ['Analysis', 'too few sources could be read and analyzed'],\n  '07': ['Writing', 'the report could not be written'],\n  '08': ['Fact-checking', 'the report could not be checked'],\n  '09': ['Delivery', 'the finished report could not be prepared or sent'],\n  '10': ['Fallback email', 'the follow-up email could not be sent'],\n};\nconst [failed_stage, friendly_reason] = STAGES[failedNode.slice(0, 2)] || ['Processing', 'an unexpected problem occurred'];\n\nconst topic = run.topic || form.Topic || '(unknown topic)';\nconst email = run.email || String(form.Email || '').trim().toLowerCase();\n\nreturn [{\n  json: {\n    run_id: run.run_id || `exec_${(err.execution && err.execution.id) || Date.now()}`,\n    started_at: run.started_at || '',\n    topic,\n    email,\n    has_email: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email),\n    depth: run.depth || '',\n    style: run.style || '',\n    num_sources: run.num_sources || '',\n    failed_node: failedNode,\n    failed_stage,\n    error_message: `${failedNode}: ${message}`.slice(0, 500),\n    config: CONFIG,\n    request: claudeRequest(CONFIG, 'fast', PROMPT, { topic, failed_stage, friendly_reason }, { maxTokens: 1000, effort: 'low' }),\n  },\n}];\n"
+      },
+      "id": "488f3202-847a-4e11-a56c-2004acfba577",
+      "name": "E03 Build Failure Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1213f3a6-c7c7-48e3-a620-e570fbce7f42",
+              "leftValue": "={{ $json.has_email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "aeb61cab-b469-4d81-a4dc-e8570bccb5c8",
+      "name": "E04 Has Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2026-10-21"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 120000,
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "dce77ca9-b939-49d9-ae46-16316a5efc21",
+      "name": "E05 Claude: Failure Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        200
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Credential: Header Auth \"Anthropic API\" (x-api-key)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---- Shared helpers: injected into every Code node by scripts/build-workflow.js ----\n\nfunction esc(s) {\n  return String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n}\n\n// Replace {{name}} with vars.name; unknown placeholders are left as-is.\nfunction fill(template, vars) {\n  return template.replace(/\\{\\{(\\w+)\\}\\}/g, (m, k) => (k in vars ? String(vars[k] ?? '') : m));\n}\n\n// Messages API request body. API version 2026-10-21 rejects temperature/top_p/top_k,\n// so depth and cost are controlled with output_config.effort.\nfunction claudeRequest(cfg, tier, prompt, vars, { maxTokens, effort }) {\n  const body = {\n    model: cfg.models[tier],\n    max_tokens: maxTokens,\n    output_config: { effort },\n    messages: [{ role: 'user', content: fill(prompt.user, vars) }],\n  };\n  if (prompt.system) body.system = prompt.system;\n  if (tier === 'fast') body.thinking = { type: 'disabled' };\n  else body.fallbacks = 'default'; // server-side refusal fallback (beta header set on the HTTP node)\n  return body;\n}\n\n// Text of a Messages API response; '' for failed calls (Continue On Fail) and refusals.\nfunction responseText(res) {\n  if (!res || res.error || res.stop_reason === 'refusal') return '';\n  return (res.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();\n}\n\nfunction parseJson(raw, label) {\n  const clean = String(raw || '').replace(/```json|```/g, '').trim();\n  const start = clean.indexOf('{');\n  const end = clean.lastIndexOf('}');\n  try {\n    return JSON.parse(start >= 0 && end > start ? clean.slice(start, end + 1) : clean);\n  } catch (e) {\n    throw new Error(`${label}: AI returned invalid JSON: ${clean.slice(0, 300)}`);\n  }\n}\n\n// Canonical form for deduping: no protocol, www, hash, tracking params or trailing slash.\nfunction normalizeUrl(u) {\n  try {\n    const url = new URL(String(u).trim());\n    url.hash = '';\n    for (const k of [...url.searchParams.keys()]) {\n      if (/^(utm_|fbclid|gclid|ref$|ref_src)/i.test(k)) url.searchParams.delete(k);\n    }\n    const host = url.hostname.toLowerCase().replace(/^www\\./, '');\n    return (host + url.pathname.replace(/\\/+$/, '') + (url.search || '')).toLowerCase();\n  } catch (e) {\n    return String(u || '').trim().toLowerCase();\n  }\n}\n\nfunction numberedList(arr) {\n  return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\\n');\n}\n\nfunction today() {\n  return new Date().toISOString().slice(0, 10);\n}\n// ---- end helpers ----\n\n// E06 Parse Failure Email: use the AI email, or a fixed one if that call failed.\nconst ctx = $('E03 Build Failure Context').first().json;\nlet email;\ntry {\n  email = parseJson(responseText($input.first().json), 'Failure email');\n} catch (e) {\n  email = {};\n}\nif (!email.subject || !email.body_html) {\n  email = {\n    subject: `Your research request could not be completed`,\n    body_html:\n      `<p>Hi,</p><p>Sorry, we could not finish your research on <strong>${esc(ctx.topic)}</strong>.</p>` +\n      `<p>Please try again in a few minutes, or try a more specific topic or fewer sources.</p>` +\n      `<p>AI Research Pipeline</p>`,\n  };\n}\nreturn [{ json: email }];\n"
+      },
+      "id": "dc78a61f-7204-440a-a8e8-798198f95e22",
+      "name": "E06 Parse Failure Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('E03 Build Failure Context').first().json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.body_html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "b7c12494-c010-4396-a046-7b20b7c9bda0",
+      "name": "E07 Send Failure Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1440,
+        200
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "webhookId": "80a1030c-9569-4af9-aa5d-208811063394"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('E03 Build Failure Context').first().json.config.sheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('E03 Build Failure Context').first().json.config.sheet_tab }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{ $('E03 Build Failure Context').first().json.run_id }}",
+            "timestamp": "={{ $('E03 Build Failure Context').first().json.started_at || $now.toISO() }}",
+            "email": "={{ $('E03 Build Failure Context').first().json.email }}",
+            "topic": "={{ $('E03 Build Failure Context').first().json.topic }}",
+            "depth": "={{ $('E03 Build Failure Context').first().json.depth }}",
+            "style": "={{ $('E03 Build Failure Context').first().json.style }}",
+            "num_sources_requested": "={{ $('E03 Build Failure Context').first().json.num_sources }}",
+            "status": "failed",
+            "duration_sec": "={{ $('E03 Build Failure Context').first().json.started_at ? Math.round((Date.now() - new Date($('E03 Build Failure Context').first().json.started_at).getTime()) / 1000) : '' }}",
+            "error_message": "={{ $('E03 Build Failure Context').first().json.error_message }}"
+          },
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "topic",
+              "displayName": "topic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "depth",
+              "displayName": "depth",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "style",
+              "displayName": "style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "num_sources_requested",
+              "displayName": "num_sources_requested",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sources_used",
+              "displayName": "sources_used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "verdict",
+              "displayName": "verdict",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "duration_sec",
+              "displayName": "duration_sec",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [
+            "run_id"
+          ]
+        },
+        "options": {}
+      },
+      "id": "c3665e1d-f0a9-44fd-a2bb-905997e019ec",
+      "name": "E08 Log Failed",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1680,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "E01 Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "E02 Fetch Failed Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E02 Fetch Failed Execution": {
+      "main": [
+        [
+          {
+            "node": "E03 Build Failure Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E03 Build Failure Context": {
+      "main": [
+        [
+          {
+            "node": "E04 Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E04 Has Email?": {
+      "main": [
+        [
+          {
+            "node": "E05 Claude: Failure Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "E08 Log Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E05 Claude: Failure Email": {
+      "main": [
+        [
+          {
+            "node": "E06 Parse Failure Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E06 Parse Failure Email": {
+      "main": [
+        [
+          {
+            "node": "E07 Send Failure Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E07 Send Failure Email": {
+      "main": [
+        [
+          {
+            "node": "E08 Log Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
