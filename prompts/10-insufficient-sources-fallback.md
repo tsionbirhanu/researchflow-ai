@@ -1,8 +1,8 @@
 # Prompt 10: Insufficient Sources Fallback
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 4. Score (when fewer than 2 sources survive scoring) | fast | 0.3 | JSON |
+| 4. Score (when fewer than 2 sources survive scoring) | fast | low | JSON |
 
 ## User
 

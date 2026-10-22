@@ -1,8 +1,8 @@
 # Prompt 03: Source Analyzer
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 5. Analyze (per source, in a loop) | fast | 0.1 | JSON only |
+| 5. Analyze (per source, in a loop) | fast | low | JSON only |
 
 Output schema: [`schemas/analyzer.json`](../schemas/analyzer.json)
 

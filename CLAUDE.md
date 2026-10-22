@@ -50,7 +50,7 @@ This is my own original project. It is inspired by a simple "form → search →
 4. **Be honest about uncertainty.** If sources are thin, conflicting, or old, say so in the report.
 5. **Fail gracefully.** A broken or paywalled URL must be skipped, not crash the run. Always suggest a fallback.
 6. **Cost control.** Cap sources at 10. Use the cheaper model for scoring/analysis. Keep prompts tight.
-7. **Low temperature** (0 to 0.3) for planning, scoring, analysis, and verification. Up to 0.5 for report writing.
+7. **No sampling parameters.** Claude API version `2026-10-21` rejects `temperature`, `top_p` and `top_k` on every model. Control cost and depth with `output_config.effort` instead: `low` for planning, scoring, analysis and emails (fast model, thinking disabled); `medium` for writing and revising; `high` for verification.
 8. **Explain briefly, then show.** Short reasoning, then the exact node config, expression, or code.
 9. When I paste an error or execution output, diagnose the root cause first, then give the fix.
 10. Do not copy anyone else's workflow. Help me build and improve my own.
@@ -88,7 +88,7 @@ Variables in `{{double braces}}` are filled in by n8n expressions.
 
 ## PROMPT 1: Research Planner
 
-**Model:** fast | **Temperature:** 0.2 | **Output:** JSON only
+**Model:** fast | **Effort:** low | **Output:** JSON only
 
 **System:**
 ```
@@ -127,7 +127,7 @@ Rules:
 
 ## PROMPT 2: Source Scorer
 
-**Model:** fast | **Temperature:** 0 | **Output:** JSON only
+**Model:** fast | **Effort:** low | **Output:** JSON only
 
 Run once per source (or batch up to 5 sources per call).
 
@@ -146,6 +146,8 @@ Evaluate this source.
 URL: {{url}}
 Title: {{title}}
 Published date (may be unknown): {{published_date}}
+Today's date: {{today}}
+Recency limit: sources must be from the last {{max_age_years}} years (if empty, every source counts as recent enough).
 Content excerpt (first 1500 characters):
 """
 {{content_excerpt}}
@@ -178,7 +180,7 @@ Scoring guide:
 
 ## PROMPT 3: Source Analyzer (per source, in a loop)
 
-**Model:** fast | **Temperature:** 0.1 | **Output:** JSON only
+**Model:** fast | **Effort:** low | **Output:** JSON only
 
 **System:**
 ```
@@ -230,7 +232,7 @@ Rules:
 
 ## PROMPT 4: Report Writer
 
-**Model:** strong | **Temperature:** 0.4 | **Output:** Markdown
+**Model:** strong | **Effort:** medium | **Output:** Markdown
 
 **System:**
 ```
@@ -302,7 +304,7 @@ Hard rules:
 
 ## PROMPT 5: Fact-Checker / Verifier
 
-**Model:** strong | **Temperature:** 0 | **Output:** JSON only
+**Model:** strong | **Effort:** high | **Output:** JSON only
 
 **System:**
 ```
@@ -354,7 +356,7 @@ Rules:
 
 ## PROMPT 6: Report Reviser
 
-**Model:** strong | **Temperature:** 0.2 | **Output:** Markdown
+**Model:** strong | **Effort:** medium | **Output:** Markdown
 
 **System:**
 ```
@@ -389,7 +391,7 @@ Rules:
 
 ## PROMPT 7: HTML Report Template Generator
 
-**Model:** strong | **Temperature:** 0.3 | **Output:** HTML
+**Model:** strong | **Effort:** medium | **Output:** HTML
 
 Use this once to generate the template, or use it in a node to convert each report.
 
@@ -427,7 +429,7 @@ Output only the HTML document. No explanation.
 
 ## PROMPT 8: Confirmation Email (sent immediately after form submit)
 
-**Model:** fast | **Temperature:** 0.5 | **Output:** HTML or plain text
+**Model:** fast | **Effort:** low | **Output:** HTML or plain text
 
 *(You can also hard-code this template without AI.)*
 
@@ -453,7 +455,7 @@ Requirements:
 
 ## PROMPT 9: Failure Email (Error branch)
 
-**Model:** fast | **Temperature:** 0.4 | **Output:** JSON
+**Model:** fast | **Effort:** low | **Output:** JSON
 
 ```
 Write a short, apologetic failure email for an automated research request that failed.
@@ -477,7 +479,7 @@ Requirements:
 
 Use when fewer than 2 sources survive scoring.
 
-**Model:** fast | **Temperature:** 0.3
+**Model:** fast | **Effort:** low
 
 ```
 The research pipeline found too few reliable sources for this topic.

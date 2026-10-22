@@ -1,8 +1,8 @@
 # Prompt 04: Report Writer
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 6. Synthesize | strong | 0.4 | Markdown |
+| 6. Synthesize | strong | medium | Markdown |
 
 ## System
 

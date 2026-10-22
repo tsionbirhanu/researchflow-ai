@@ -1,8 +1,8 @@
 # Prompt 01: Research Planner
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 2. Plan | fast | 0.2 | JSON only |
+| 2. Plan | fast | low | JSON only |
 
 Variables in `{{double braces}}` are filled in by n8n expressions.
 Output schema: [`schemas/planner.json`](../schemas/planner.json)

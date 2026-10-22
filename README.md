@@ -56,7 +56,7 @@ flowchart TD
 - **JSON between stages.** Every AI step that feeds another node returns strict JSON, parsed with [`code/parse-ai-json.js`](code/parse-ai-json.js). Shapes are documented in [`schemas/`](schemas/).
 - **No hallucinated sources.** The writer, fact-checker and reviser see only the analyzed evidence and must never add outside facts, URLs, quotes or authors.
 - **Cost control.** Sources are capped at 10. A fast model handles planning, scoring and analysis, and a stronger model handles writing and verification.
-- **Low temperature.** Planning, scoring, analysis and verification run at 0 to 0.3; writing runs at up to 0.5.
+- **Effort, not temperature.** Claude API version `2026-10-21` rejects sampling parameters, so each call sets `output_config.effort`: `low` for the fast model, `medium` for writing, `high` for fact-checking.
 - **Resilience.** Retry On Fail (2 to 3 tries) is enabled on every HTTP and AI node, and Continue On Fail on per-source fetch nodes.
 
 ## Tech stack

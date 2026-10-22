@@ -1,8 +1,8 @@
 # Prompt 08: Confirmation Email
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 1. Intake (sent immediately after form submit) | fast | 0.5 | JSON |
+| 1. Intake (sent immediately after form submit) | fast | low | JSON |
 
 You can also hard-code this template without AI.
 

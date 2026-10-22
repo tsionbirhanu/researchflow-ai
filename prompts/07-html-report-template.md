@@ -1,8 +1,8 @@
 # Prompt 07: HTML Report Template Generator
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 8. Deliver | strong | 0.3 | HTML |
+| 8. Deliver | strong | medium | HTML |
 
 Use this once to generate a reusable template (save it in [`templates/`](../templates/)), or use it in a node to convert each report.
 

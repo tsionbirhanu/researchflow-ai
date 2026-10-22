@@ -1,8 +1,8 @@
 # Prompt 09: Failure Email
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 9. Error branch | fast | 0.4 | JSON |
+| 9. Error branch | fast | low | JSON |
 
 ## User
 

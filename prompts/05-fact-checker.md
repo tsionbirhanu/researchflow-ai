@@ -1,8 +1,8 @@
 # Prompt 05: Fact-Checker / Verifier
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 7. Verify | strong | 0 | JSON only |
+| 7. Verify | strong | high | JSON only |
 
 Output schema: [`schemas/verifier.json`](../schemas/verifier.json)
 

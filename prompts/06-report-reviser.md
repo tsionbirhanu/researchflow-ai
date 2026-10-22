@@ -1,8 +1,8 @@
 # Prompt 06: Report Reviser
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 7. Verify (only when verdict is `pass_with_fixes` or `fail`) | strong | 0.2 | Markdown |
+| 7. Verify (only when verdict is `pass_with_fixes` or `fail`) | strong | medium | Markdown |
 
 ## System
 

@@ -1,8 +1,8 @@
 # Prompt 02: Source Scorer
 
-| Stage | Model | Temperature | Output |
+| Stage | Model | Effort | Output |
 |---|---|---|---|
-| 4. Score | fast | 0 | JSON only |
+| 4. Score | fast | low | JSON only |
 
 Run once per source (or batch up to 5 sources per call).
 Output schema: [`schemas/scorer.json`](../schemas/scorer.json)
@@ -24,6 +24,8 @@ Evaluate this source.
 URL: {{url}}
 Title: {{title}}
 Published date (may be unknown): {{published_date}}
+Today's date: {{today}}
+Recency limit: sources must be from the last {{max_age_years}} years (if empty, every source counts as recent enough).
 Content excerpt (first 1500 characters):
 """
 {{content_excerpt}}
