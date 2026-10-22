@@ -1,0 +1,30 @@
+# Free local stack: n8n (workflow engine) + Gotenberg (HTML -> PDF).
+# Start:  docker compose up -d      Open: http://localhost:5678
+# Stop:   docker compose down       (your workflows and credentials stay in the n8n_data volume)
+#
+# Tip: replace :latest with a specific n8n version once everything works, so updates
+# never change your setup unexpectedly.
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=${TIMEZONE:-UTC}
+      - TZ=${TIMEZONE:-UTC}
+      - WEBHOOK_URL=${N8N_PUBLIC_URL:-http://localhost:5678/}
+      - N8N_DIAGNOSTICS_ENABLED=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - gotenberg
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    # Reached by n8n at http://gotenberg:3000 on the internal network; not exposed to your machine.
+
+volumes:
+  n8n_data:
