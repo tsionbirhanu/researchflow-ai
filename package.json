@@ -1,0 +1,11 @@
+{
+  "name": "researchflow-ai",
+  "version": "2.0.0",
+  "private": true,
+  "description": "AI Research Pipeline v2: n8n workflow build and tests",
+  "scripts": {
+    "build": "node scripts/build-workflow.js",
+    "test": "node --test scripts/test-nodes.js"
+  },
+  "engines": { "node": ">=18" }
+}
