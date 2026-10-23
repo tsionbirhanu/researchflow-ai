@@ -12,7 +12,7 @@ This is my own original project. It is inspired by a simple "form → search →
 
 - **Automation:** n8n, self-hosted with Docker (free); n8n Cloud also works
 - **AI model:** must stay free. Default: Google Gemini free tier via its OpenAI-compatible endpoint. Claude API is an optional paid alternative. Use a fast model for scoring/analysis and a stronger model for writing/verification.
-- **Search:** Tavily API (search + extract)
+- **Search:** SearXNG self-hosted in Docker (free, no key); Tavily optional
 - **Logging:** Google Sheets
 - **Email:** Gmail node
 - **PDF:** Gotenberg, self-hosted in the same Docker setup
@@ -34,7 +34,7 @@ This is my own original project. It is inspired by a simple "form → search →
 
 1. **Intake:** Form Trigger → validate → send confirmation email → log "started" row in Google Sheets.
 2. **Plan:** AI creates sub-questions and search queries (JSON).
-3. **Search:** Tavily for each query → merge → dedupe by URL → fetch content.
+3. **Search:** SearXNG (or Tavily) for each query → merge → dedupe by URL → fetch content.
 4. **Score:** AI rates each source for relevance and credibility → keep top N.
 5. **Analyze:** loop over sources → extract facts, stats, quotes, metadata (JSON).
 6. **Synthesize:** AI writes the report using only extracted facts, with `[n]` citations.

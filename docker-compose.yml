@@ -1,4 +1,4 @@
-# Free local stack: n8n (workflow engine) + Gotenberg (HTML -> PDF).
+# Free local stack: n8n (workflow engine) + SearXNG (web search) + Gotenberg (HTML -> PDF).
 # Start:  docker compose up -d      Open: http://localhost:5678
 # Stop:   docker compose down       (your workflows and credentials stay in the n8n_data volume)
 #
@@ -20,6 +20,14 @@ services:
       - n8n_data:/home/node/.n8n
     depends_on:
       - gotenberg
+      - searxng
+
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    # Reached by n8n at http://searxng:8080. To try it in your browser, add:  ports: ["8888:8080"]
 
   gotenberg:
     image: gotenberg/gotenberg:8

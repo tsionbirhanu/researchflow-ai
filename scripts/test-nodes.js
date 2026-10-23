@@ -118,9 +118,45 @@ test('04c merges, dedupes URL variants and counts failed searches', async () => 
   assert.equal(failed_queries, 1);
 });
 
-test('04e attaches extracted text and drops unreadable pages', async () => {
+test('04c reads SearXNG results (publishedDate, no scores) and keeps the top per query', async () => {
+  const results = Array.from({ length: 8 }, (_, i) => ({ url: `https://s${i}.org/p`, title: `S${i}`, content: 'snippet', publishedDate: '2025-01-01' }));
+  const [out] = await run(MAIN, '04c Merge & Dedupe', [{ query: 'q', results }], { '02 Validate': RUN });
+  assert.equal(out.json.candidates.length, RUN.config.results_per_query);
+  assert.equal(out.json.candidates[0].url, 'https://s0.org/p', 'rank order kept');
+  assert.equal(out.json.candidates[0].published_date, '2025-01-01');
+  assert.equal(out.json.urls_to_extract.length, RUN.config.results_per_query, 'SearXNG pages all need fetching');
+});
+
+test('04e (SearXNG) turns downloaded HTML into text and skips failed or non-HTML fetches', async () => {
+  const article = `<html><head><style>.x{}</style><script>track()</script></head><body><nav>Menu Home About</nav>
+    <article><h1>Title</h1><p>${'Remote work raised output in the study. '.repeat(20)}</p><p>Tom &amp; Jerry&#39;s data.</p></article>
+    <footer>Copyright</footer></body></html>`;
+  const cands = ['a', 'b', 'c'].map(k => ({ url: `https://${k}.com/x`, title: k, snippet: 'short', raw_content: '' }));
+  const [out] = await run(MAIN, '04e Attach Content', [
+    { body: article, headers: { 'content-type': 'text/html; charset=utf-8' }, statusCode: 200 },
+    { error: { message: '403 Forbidden' } },
+    { body: '%PDF-1.7 ...', headers: { 'content-type': 'application/pdf' }, statusCode: 200 },
+  ], {
+    '02 Validate': RUN,
+    '04c Merge & Dedupe': { candidates: cands },
+    '04d2 Split URLs': cands.map(c => ({ url: c.url })),
+  });
+  assert.equal(out.json.candidate_count, 1);
+  const text = out.json.candidates[0].content;
+  assert.ok(text.startsWith('Title'), 'article content only');
+  assert.ok(!/Menu|track\(\)|Copyright|<p>/.test(text), 'scripts, nav, footer and tags removed');
+  assert.ok(text.includes("Tom & Jerry's data."), 'entities decoded');
+});
+
+test('04d2 always emits at least one item', async () => {
+  const out = await run(MAIN, '04d2 Split URLs', [{ urls_to_extract: [] }]);
+  assert.equal(out.length, 1);
+});
+
+test('04e (Tavily) attaches extracted text and drops unreadable pages', async () => {
   const long = 'x'.repeat(300);
   const [out] = await run(MAIN, '04e Attach Content', [{ results: [{ url: 'https://example.com/a', raw_content: long }] }], {
+    '02 Validate': { ...RUN, config: { ...RUN.config, search: { provider: 'tavily' } } },
     '04c Merge & Dedupe': { candidates: [
       { url: 'https://example.com/a', title: 'A', snippet: 'short', raw_content: '' },
       { url: 'https://paywall.com/p', title: 'P', snippet: 'Subscribe to read', raw_content: '' },

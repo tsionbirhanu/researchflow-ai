@@ -92,6 +92,26 @@ function normalizeUrl(u) {
   }
 }
 
+// Readable text from a web page: prefers <article>/<main>, drops scripts, menus and markup.
+function htmlToText(html) {
+  let s = String(html || '');
+  const main = s.match(/<article[\s\S]*?<\/article>/i) || s.match(/<main[\s\S]*?<\/main>/i);
+  if (main && main[0].length > 500) s = main[0];
+  const entities = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" };
+  return s
+    .replace(/<(script|style|noscript|svg|nav|header|footer|form|aside|iframe)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|tr|section|article|blockquote)>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&(nbsp|amp|lt|gt|quot|apos|#39);/g, (m, k) => entities[k])
+    .replace(/&#(\d+);/g, (m, d) => String.fromCharCode(Number(d)))
+    .replace(/[ \t\f\v]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function numberedList(arr) {
   return (arr || []).map((q, i) => `${i + 1}. ${q}`).join('\n');
 }

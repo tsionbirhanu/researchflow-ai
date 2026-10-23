@@ -5,12 +5,12 @@ Everything below is free and needs no credit card. Plan on about 45 minutes the 
 | Piece | Free option | Limits to know |
 |---|---|---|
 | AI model | Google Gemini via AI Studio | Low free rate limits (a few requests per minute, limited requests per day). The pipeline is tuned for this. |
-| Web search | Tavily free plan | 1,000 credits per month, roughly 50 to 70 reports |
+| Web search | SearXNG in the same Docker setup | No account or key. Uses public engines (DuckDuckGo, Bing, Brave, Wikipedia); an engine may occasionally be rate-limited |
 | n8n | Self-hosted with Docker on your computer | Runs while your computer is on |
 | PDF | Gotenberg in the same Docker setup | None |
 | Sheets + Gmail | Your Google account | None for this use |
 
-## 1. Start n8n and Gotenberg
+## 1. Start n8n, SearXNG and Gotenberg
 
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/), which is free for personal use, and start it.
 2. In the project folder, run:
@@ -30,8 +30,7 @@ To stop it, run `docker compose down`. Your workflows and credentials are kept.
 2. Click **Get API key → Create API key**. No billing is needed.
 3. Check which models your key can use for free in AI Studio. The workflow uses the aliases `gemini-flash-lite-latest` (fast steps) and `gemini-flash-latest` (writing and fact-checking). If either one is not available to you, change it in `CONFIG` (step 6).
 
-**Tavily (web search)**
-1. Sign up at [app.tavily.com](https://app.tavily.com) and copy your API key (`tvly-...`).
+**Web search:** no key needed. SearXNG runs in Docker. (Tavily is optional; if `app.tavily.com` is blocked for you, skip it.)
 
 **n8n API (for failure emails)**
 1. In n8n, go to **Settings → n8n API → Create an API key**.
@@ -69,7 +68,7 @@ Go to **Credentials → Add credential**:
 | Name | Type | Fields |
 |---|---|---|
 | LLM API | Header Auth | Name: `Authorization`, Value: `Bearer <your Gemini key>` |
-| Tavily API | Header Auth | Name: `Authorization`, Value: `Bearer tvly-...` |
+| Tavily API | Header Auth | Name: `Authorization`, Value: `Bearer none`. A placeholder is fine: the Tavily nodes are skipped unless `CONFIG.search.provider` is `'tavily'`, but n8n wants a credential on them before it will activate the workflow |
 | n8n API | Header Auth | Name: `X-N8N-API-KEY`, Value: your n8n API key |
 | Google Sheets | Google Sheets OAuth2 API | Client ID + secret from step 3, then **Sign in with Google** |
 | Gmail | Gmail OAuth2 | Same Client ID + secret, then **Sign in with Google** |
@@ -82,7 +81,7 @@ Go to **Credentials → Add credential**:
    | Nodes | Credential |
    |---|---|
    | `03b`, `05b`, `06b`, `07b`, `08b`, `08f`, `10b`, `E05` (AI) | LLM API |
-   | `04b`, `04d` (Tavily) | Tavily API |
+   | `04b`, `04d` (Tavily, unused by default) | Tavily API (placeholder) |
    | `02b`, `09h`, `10e`, `E08` | Google Sheets |
    | `02a`, `09f`, `09g`, `10d`, `E07` | Gmail |
    | `E02 Fetch Failed Execution` | n8n API |
@@ -122,7 +121,8 @@ Then change the **LLM API** credential to Name `x-api-key`, Value `<your Claude 
 | AI node returns 429 | Free-tier rate limit | Wait and retry; use Quick depth and fewer sources |
 | AI node returns 404 / model not found | The model alias isn't available to your key | Pick a free model listed in AI Studio and set it in `CONFIG.llm.models` |
 | AI node returns 400/401 | Wrong credential format | Gemini needs `Authorization: Bearer <key>` |
-| `04b Tavily Search` returns 401 or 432 | Wrong key, or monthly credits used up | Check the key and your usage at app.tavily.com |
+| `04b2 SearXNG Search` fails or returns no results | SearXNG not running, or engines temporarily blocking | Run `docker compose ps` and `docker compose logs searxng`; wait a few minutes and retry |
+| Many sources dropped as unreadable | Sites block automated downloads (403) or are paywalled | Expected for some sites; snippets are used when long enough. Try a broader topic |
 | Email arrives without a PDF | Gotenberg not reachable | Run `docker compose ps`; `pdf_url` must be `http://gotenberg:3000/forms/chromium/convert/html` |
 | Google sign-in says "access blocked" | You're not a test user | Add your Gmail under OAuth consent screen → Test users |
 | Sheets error "sheet not found" | Tab name mismatch | Name the tab `runs`, or change `sheet_tab` |

@@ -10,6 +10,9 @@ const CONFIG = {
   },
   // Groq (free tier):  { provider: 'openai', url: 'https://api.groq.com/openai/v1/chat/completions', models: { fast: '...', strong: '...' } }
   // Claude (paid):     { provider: 'claude', models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' } }
+  // Free default: SearXNG from docker-compose.yml (no account, no key).
+  // Tavily:  { provider: 'tavily' } plus the "Tavily API" credential on 04b and 04d.
+  search: { provider: 'searxng', searxng_url: 'http://searxng:8080/search' },
   sheet_id: 'PASTE_YOUR_GOOGLE_SHEET_ID',
   sheet_tab: 'runs',
   pdf_url: 'http://gotenberg:3000/forms/chromium/convert/html', // Gotenberg from docker-compose.yml

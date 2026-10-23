@@ -1,11 +1,27 @@
-// 04e Attach Content: merge extracted page text into candidates and drop unreadable pages.
-// A failed /extract call (Continue On Fail) just means we fall back to search snippets.
+// 04e Attach Content: merge fetched page text into candidates and drop unreadable pages.
+// Tavily path: one /extract response. SearXNG path: one downloaded page per item, in 04d2 order.
+// Failed fetches (Continue On Fail) just mean we fall back to search snippets.
 const MIN_CHARS = 200;
+const cfg = $('02 Validate').first().json.config;
 const { candidates } = $('04c Merge & Dedupe').first().json;
 
 const extracted = new Map();
-for (const x of ($input.first().json.results || [])) {
-  if (x && x.url && x.raw_content) extracted.set(normalizeUrl(x.url), x.raw_content);
+if (cfg.search.provider === 'tavily') {
+  for (const x of ($input.first().json.results || [])) {
+    if (x && x.url && x.raw_content) extracted.set(normalizeUrl(x.url), x.raw_content);
+  }
+} else {
+  const urls = $('04d2 Split URLs').all();
+  $input.all().forEach((item, i) => {
+    const url = urls[i] && urls[i].json.url;
+    const res = item.json;
+    if (!url || res.error) return;
+    const headers = res.headers || {};
+    const type = String(headers['content-type'] || headers['Content-Type'] || '');
+    if (type && !/html|text\/plain/i.test(type)) return; // PDFs, images, etc.
+    const text = htmlToText(typeof res.body === 'string' ? res.body : res.data);
+    if (text) extracted.set(normalizeUrl(url), text);
+  });
 }
 
 const readable = candidates

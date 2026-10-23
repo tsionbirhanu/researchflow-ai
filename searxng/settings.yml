@@ -1,0 +1,19 @@
+# SearXNG settings for the local research pipeline (see docker-compose.yml).
+# Only used by n8n on the internal Docker network.
+use_default_settings: true
+
+general:
+  instance_name: "ResearchFlow search"
+
+server:
+  # Any random string works; change it if you expose SearXNG beyond your machine.
+  secret_key: "researchflow-local-change-me"
+  limiter: false
+  image_proxy: false
+
+search:
+  safe_search: 1
+  # n8n reads results as JSON
+  formats:
+    - html
+    - json

@@ -169,13 +169,13 @@ function buildMain() {
   const nodes = [
     sticky('Stage 1: Intake', [-120, 120], 1080, 400, '## 1. Intake\nForm → validate → confirmation email → log `started`.\nEdit **CONFIG** in `02 Validate` after importing.'),
     sticky('Stage 2: Plan', [X(4) - 120, 120], 720, 400, '## 2. Plan\nPrompt 01: sub-questions + search queries (fast model).', 5),
-    sticky('Stage 3: Search', [X(7) - 120, 120], 1440, 400, '## 3. Search\nTavily per query → merge + dedupe by URL → extract missing page text.\nBroken or paywalled pages are dropped, not fatal.', 4),
-    sticky('Stage 4: Score', [X(13) - 120, 120], 960, 400, '## 4. Score\nPrompt 02b, 5 sources per call (fast) → keep the top N. Fewer than 2 → fallback email.', 6),
-    sticky('Stage 4b: Insufficient sources', [X(17) - 120, 520], 1200, 300, '## Insufficient sources\nPrompt 10 email → log `insufficient_sources`.', 3),
-    sticky('Stage 5: Analyze', [X(17) - 120, 120], 720, 400, '## 5. Analyze\nPrompt 03 per source (fast). Failed sources are skipped.', 5),
-    sticky('Stage 6: Synthesize', [X(20) - 120, 120], 720, 400, '## 6. Synthesize\nPrompt 04: cited Markdown report (strong model).', 4),
-    sticky('Stage 7: Verify', [X(23) - 120, -80], 1680, 600, '## 7. Verify\nPrompt 05 fact-check (strong). Issues → Prompt 06 revision.', 6),
-    sticky('Stage 8: Deliver', [X(30) - 120, 120], 2160, 520, '## 8. Deliver\nSources list rebuilt from real URLs → HTML → PDF (Gotenberg) → Gmail → log `completed`.\nIf the PDF fails, the email goes out without it.', 4),
+    sticky('Stage 3: Search', [X(7) - 120, 80], 2160, 480, '## 3. Search\nSearXNG (free, self-hosted) or Tavily per query → merge + dedupe by URL → fetch page text.\nBroken or paywalled pages are dropped, not fatal. Provider: `CONFIG.search.provider`.', 4),
+    sticky('Stage 4: Score', [X(16) - 120, 120], 960, 400, '## 4. Score\nPrompt 02b, 5 sources per call (fast) → keep the top N. Fewer than 2 → fallback email.', 6),
+    sticky('Stage 4b: Insufficient sources', [X(20) - 120, 520], 1200, 300, '## Insufficient sources\nPrompt 10 email → log `insufficient_sources`.', 3),
+    sticky('Stage 5: Analyze', [X(20) - 120, 120], 720, 400, '## 5. Analyze\nPrompt 03 per source (fast). Failed sources are skipped.', 5),
+    sticky('Stage 6: Synthesize', [X(23) - 120, 120], 720, 400, '## 6. Synthesize\nPrompt 04: cited Markdown report (strong model).', 4),
+    sticky('Stage 7: Verify', [X(26) - 120, -80], 1680, 600, '## 7. Verify\nPrompt 05 fact-check (strong). Issues → Prompt 06 revision.', 6),
+    sticky('Stage 8: Deliver', [X(33) - 120, 120], 2160, 520, '## 8. Deliver\nSources list rebuilt from real URLs → HTML → PDF (Gotenberg) → Gmail → log `completed`.\nIf the PDF fails, the email goes out without it.', 4),
 
     node('01 Form', 'n8n-nodes-base.formTrigger', 2.2, [X(0), Y], {
       formTitle: 'AI Research Pipeline',
@@ -221,25 +221,50 @@ function buildMain() {
     code('03c Parse Plan', [X(6), Y], '03c-parse-plan.js'),
 
     code('04a Split Queries', [X(7), Y], '04a-split-queries.js'),
-    tavily('04b Tavily Search', [X(8), Y], 'search', '={{ JSON.stringify($json.body) }}',
+    ifTrue('04a2 Use Tavily?', [X(8), Y], `={{ ${V}.config.search.provider === 'tavily' }}`),
+    tavily('04b Tavily Search', [X(9), Y - 120], 'search', '={{ JSON.stringify($json.body) }}',
       { options: { batching: { batch: { batchSize: 2, batchInterval: 500 } } } }),
-    code('04c Merge & Dedupe', [X(9), Y], '04c-merge-dedupe.js'),
-    tavily('04d Tavily Extract', [X(10), Y], 'extract', '={{ JSON.stringify({ urls: $json.urls_to_extract }) }}'),
-    code('04e Attach Content', [X(11), Y], '04e-attach-content.js'),
-    ifTrue('04f Any Sources?', [X(12), Y], '={{ $json.has_candidates }}'),
+    node('04b2 SearXNG Search', 'n8n-nodes-base.httpRequest', 4.2, [X(9), Y + 120], {
+      method: 'GET',
+      url: `={{ ${V}.config.search.searxng_url }}`,
+      sendQuery: true,
+      queryParameters: { parameters: [{ name: 'q', value: '={{ $json.query }}' }, { name: 'format', value: 'json' }] },
+      options: { timeout: 30000, batching: { batch: { batchSize: 1, batchInterval: 1000 } } },
+    }, { ...RETRY, ...CONTINUE, notes: 'Free self-hosted search from docker-compose.yml. No credential needed.' }),
+    code('04c Merge & Dedupe', [X(10), Y], '04c-merge-dedupe.js'),
+    ifTrue('04c2 Use Tavily?', [X(11), Y], `={{ ${V}.config.search.provider === 'tavily' }}`),
+    tavily('04d Tavily Extract', [X(12), Y - 120], 'extract', '={{ JSON.stringify({ urls: $json.urls_to_extract }) }}'),
+    code('04d2 Split URLs', [X(12), Y + 120], '04d2-split-urls.js'),
+    node('04d3 Fetch Pages', 'n8n-nodes-base.httpRequest', 4.2, [X(13), Y + 120], {
+      method: 'GET',
+      url: '={{ $json.url }}',
+      sendHeaders: true,
+      headerParameters: { parameters: [
+        { name: 'User-Agent', value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36' },
+        { name: 'Accept', value: 'text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5' },
+      ] },
+      options: {
+        timeout: 20000,
+        allowUnauthorizedCerts: true,
+        batching: { batch: { batchSize: 4, batchInterval: 500 } },
+        response: { response: { fullResponse: true, responseFormat: 'text' } },
+      },
+    }, { retryOnFail: true, maxTries: 2, waitBetweenTries: 2000, ...CONTINUE, notes: 'Downloads each page; failures (paywalls, 403s, timeouts) are skipped.' }),
+    code('04e Attach Content', [X(14), Y], '04e-attach-content.js'),
+    ifTrue('04f Any Sources?', [X(15), Y], '={{ $json.has_candidates }}'),
 
-    code('05a Build Score Requests', [X(13), Y], '05a-build-score-requests.js'),
-    ai('05b AI: Score', [X(14), Y], { perItem: true }),
-    code('05c Select Top Sources', [X(15), Y], '05c-select-top-sources.js'),
-    ifTrue('05d Enough Sources?', [X(16), Y], '={{ $json.enough }}'),
+    code('05a Build Score Requests', [X(16), Y], '05a-build-score-requests.js'),
+    ai('05b AI: Score', [X(17), Y], { perItem: true }),
+    code('05c Select Top Sources', [X(18), Y], '05c-select-top-sources.js'),
+    ifTrue('05d Enough Sources?', [X(19), Y], '={{ $json.enough }}'),
 
-    code('10a Build Fallback Request', [X(17), Y + 340], '10a-build-fallback-request.js'),
-    ai('10b AI: Fallback Email', [X(18), Y + 340], { perItem: true }),
-    code('10c Parse Fallback Email', [X(19), Y + 340], '10c-parse-fallback-email.js'),
-    gmail('10d Send Fallback Email', [X(20), Y + 340], {
+    code('10a Build Fallback Request', [X(20), Y + 340], '10a-build-fallback-request.js'),
+    ai('10b AI: Fallback Email', [X(21), Y + 340], { perItem: true }),
+    code('10c Parse Fallback Email', [X(22), Y + 340], '10c-parse-fallback-email.js'),
+    gmail('10d Send Fallback Email', [X(23), Y + 340], {
       to: `={{ ${V}.email }}`, subject: '={{ $json.subject }}', message: '={{ $json.body_html }}',
     }),
-    sheet('10e Log Insufficient', [X(21), Y + 340], 'appendOrUpdate', `${V}.config`, {
+    sheet('10e Log Insufficient', [X(24), Y + 340], 'appendOrUpdate', `${V}.config`, {
       run_id: `={{ ${V}.run_id }}`,
       timestamp: `={{ ${V}.started_at }}`,
       email: `={{ ${V}.email }}`,
@@ -252,28 +277,28 @@ function buildMain() {
       duration_sec: `={{ Math.round((Date.now() - new Date(${V}.started_at).getTime()) / 1000) }}`,
     }),
 
-    code('06a Build Analyze Requests', [X(17), Y], '06a-build-analyze-requests.js'),
-    ai('06b AI: Analyze', [X(18), Y], { perItem: true }),
-    code('06c Collect Analyses', [X(19), Y], '06c-collect-analyses.js'),
+    code('06a Build Analyze Requests', [X(20), Y], '06a-build-analyze-requests.js'),
+    ai('06b AI: Analyze', [X(21), Y], { perItem: true }),
+    code('06c Collect Analyses', [X(22), Y], '06c-collect-analyses.js'),
 
-    code('07a Build Write Request', [X(20), Y], '07a-build-write-request.js'),
-    ai('07b AI: Write Report', [X(21), Y], { strong: true }),
-    code('07c Extract Draft', [X(22), Y], '07c-extract-draft.js'),
+    code('07a Build Write Request', [X(23), Y], '07a-build-write-request.js'),
+    ai('07b AI: Write Report', [X(24), Y], { strong: true }),
+    code('07c Extract Draft', [X(25), Y], '07c-extract-draft.js'),
 
-    code('08a Build Verify Request', [X(23), Y], '08a-build-verify-request.js'),
-    ai('08b AI: Fact-Check', [X(24), Y], { strong: true, perItem: true }),
-    code('08c Parse Verification', [X(25), Y], '08c-parse-verification.js'),
-    ifTrue('08d Needs Revision?', [X(26), Y], '={{ $json.needs_revision }}'),
-    code('08e Build Revise Request', [X(27), Y - 260], '08e-build-revise-request.js'),
-    ai('08f AI: Revise', [X(28), Y - 260], { strong: true, perItem: true }),
-    code('08g Take Revision', [X(29), Y - 260], '08g-take-revision.js'),
+    code('08a Build Verify Request', [X(26), Y], '08a-build-verify-request.js'),
+    ai('08b AI: Fact-Check', [X(27), Y], { strong: true, perItem: true }),
+    code('08c Parse Verification', [X(28), Y], '08c-parse-verification.js'),
+    ifTrue('08d Needs Revision?', [X(29), Y], '={{ $json.needs_revision }}'),
+    code('08e Build Revise Request', [X(30), Y - 260], '08e-build-revise-request.js'),
+    ai('08f AI: Revise', [X(31), Y - 260], { strong: true, perItem: true }),
+    code('08g Take Revision', [X(32), Y - 260], '08g-take-revision.js'),
 
-    code('09a Prepare Report', [X(30), Y], '09a-prepare-report.js'),
-    node('09b Markdown to HTML', 'n8n-nodes-base.markdown', 1, [X(31), Y], {
+    code('09a Prepare Report', [X(33), Y], '09a-prepare-report.js'),
+    node('09b Markdown to HTML', 'n8n-nodes-base.markdown', 1, [X(34), Y], {
       mode: 'markdownToHtml', markdown: '={{ $json.markdown }}', destinationKey: 'html_body', options: {},
     }),
-    code('09c Build HTML', [X(32), Y], '09c-build-html.js'),
-    node('09d HTML to PDF', 'n8n-nodes-base.httpRequest', 4.2, [X(33), Y], {
+    code('09c Build HTML', [X(35), Y], '09c-build-html.js'),
+    node('09d HTML to PDF', 'n8n-nodes-base.httpRequest', 4.2, [X(36), Y], {
       method: 'POST',
       url: `={{ ${V}.config.pdf_url }}`,
       sendHeaders: true,
@@ -283,19 +308,19 @@ function buildMain() {
       bodyParameters: { parameters: [{ parameterType: 'formBinaryData', name: 'files', inputDataFieldName: 'report' }] },
       options: { timeout: 120000, response: { response: { responseFormat: 'file', outputPropertyName: 'pdf' } } },
     }, { ...RETRY, ...CONTINUE, notes: 'Gotenberg Chromium HTML route. Add auth here if your PDF service needs it.' }),
-    ifTrue('09e PDF Ready?', [X(34), Y], '={{ !!($binary && $binary.pdf) }}'),
-    gmail('09f Email Report + PDF', [X(35), Y - 120], {
+    ifTrue('09e PDF Ready?', [X(37), Y], '={{ !!($binary && $binary.pdf) }}'),
+    gmail('09f Email Report + PDF', [X(38), Y - 120], {
       to: `={{ ${V}.email }}`,
       subject: `=Research report: {{ ${R}.title }}`,
       message: "={{ $('09c Build HTML').first().json.html }}",
       attachPdf: true,
     }),
-    gmail('09g Email Report (no PDF)', [X(35), Y + 120], {
+    gmail('09g Email Report (no PDF)', [X(38), Y + 120], {
       to: `={{ ${V}.email }}`,
       subject: `=Research report: {{ ${R}.title }}`,
       message: "={{ $('09c Build HTML').first().json.html }}",
     }),
-    sheet('09h Log Completed', [X(36), Y], 'appendOrUpdate', `${V}.config`, {
+    sheet('09h Log Completed', [X(39), Y], 'appendOrUpdate', `${V}.config`, {
       run_id: `={{ ${V}.run_id }}`,
       timestamp: `={{ ${V}.started_at }}`,
       email: `={{ ${V}.email }}`,
@@ -315,8 +340,13 @@ function buildMain() {
   const links = [
     ['01 Form', '02 Validate'], ['02 Validate', '02a Send Confirmation'], ['02a Send Confirmation', '02b Log Started'],
     ['02b Log Started', '03a Build Plan Request'], ['03a Build Plan Request', '03b AI: Plan'], ['03b AI: Plan', '03c Parse Plan'],
-    ['03c Parse Plan', '04a Split Queries'], ['04a Split Queries', '04b Tavily Search'], ['04b Tavily Search', '04c Merge & Dedupe'],
-    ['04c Merge & Dedupe', '04d Tavily Extract'], ['04d Tavily Extract', '04e Attach Content'], ['04e Attach Content', '04f Any Sources?'],
+    ['03c Parse Plan', '04a Split Queries'], ['04a Split Queries', '04a2 Use Tavily?'],
+    ['04a2 Use Tavily?', '04b Tavily Search', 0], ['04a2 Use Tavily?', '04b2 SearXNG Search', 1],
+    ['04b Tavily Search', '04c Merge & Dedupe'], ['04b2 SearXNG Search', '04c Merge & Dedupe'],
+    ['04c Merge & Dedupe', '04c2 Use Tavily?'],
+    ['04c2 Use Tavily?', '04d Tavily Extract', 0], ['04c2 Use Tavily?', '04d2 Split URLs', 1],
+    ['04d Tavily Extract', '04e Attach Content'], ['04d2 Split URLs', '04d3 Fetch Pages'], ['04d3 Fetch Pages', '04e Attach Content'],
+    ['04e Attach Content', '04f Any Sources?'],
     ['04f Any Sources?', '05a Build Score Requests', 0], ['04f Any Sources?', '10a Build Fallback Request', 1],
     ['05a Build Score Requests', '05b AI: Score'], ['05b AI: Score', '05c Select Top Sources'], ['05c Select Top Sources', '05d Enough Sources?'],
     ['05d Enough Sources?', '06a Build Analyze Requests', 0], ['05d Enough Sources?', '10a Build Fallback Request', 1],

@@ -23,7 +23,7 @@ flowchart TD
     A[01 Form Trigger] --> B[02 Validate]
     B --> C[Confirmation email + log 'started']
     C --> D[03 Plan<br/>sub-questions + queries]
-    D --> E[04 Search<br/>Tavily per query]
+    D --> E[04 Search<br/>SearXNG per query]
     E --> F[Merge + dedupe by URL<br/>extract page text]
     F --> G[05 Score<br/>relevance + credibility]
     G -->|fewer than 2 kept| X[Insufficient sources email<br/>log 'insufficient_sources']
@@ -44,7 +44,7 @@ flowchart TD
 |---|---|---|---|---|
 | 1 | Intake | Form Trigger, validation, confirmation email, `started` row in Sheets | fixed template ([08](prompts/08-confirmation-email.md) as reference) | n/a |
 | 2 | Plan | Generates sub-questions and 3 to 5 search queries as JSON | [01](prompts/01-research-planner.md) | fast |
-| 3 | Search | Tavily search per query, merge, dedupe by URL, extract missing page text | n/a | n/a |
+| 3 | Search | SearXNG (or Tavily) search per query, merge, dedupe by URL, download page text | n/a | n/a |
 | 4 | Score | Rates sources 5 per call and keeps the top `num_sources` (max 10) | [02b](prompts/02b-source-scorer-batch.md), [10](prompts/10-insufficient-sources-fallback.md) | fast |
 | 5 | Analyze | Extracts facts, statistics, quotes and metadata per source | [03](prompts/03-source-analyzer.md) | fast |
 | 6 | Synthesize | Writes the Markdown report from the extracted evidence only | [04](prompts/04-report-writer.md) | strong |
@@ -58,7 +58,7 @@ The AI provider is set in the `CONFIG` block of `02 Validate`. The default is **
 
 - **JSON between stages.** Every AI step that feeds another node returns strict JSON, parsed defensively (text blocks only, fences stripped). Shapes are documented in [`schemas/`](schemas/).
 - **No hallucinated sources.** The writer, fact-checker and reviser see only the analyzed evidence. URLs and titles always come from the search results, never from the model.
-- **Runs for free.** Gemini free tier, Tavily free plan, and n8n plus Gotenberg self-hosted with Docker. Sources are scored 5 per call and per-source calls are spaced 12 seconds apart to fit free-tier rate limits.
+- **Runs for free.** Gemini free tier, plus n8n, SearXNG and Gotenberg self-hosted with Docker. Sources are scored 5 per call and per-source calls are spaced 12 seconds apart to fit free-tier rate limits.
 - **Cost control.** Sources are capped at 10 and candidates at 10. A fast model handles planning, scoring and analysis, and a stronger model handles writing and verification.
 - **Provider-aware settings.** OpenAI-compatible providers get low temperatures (0 to 0.4). The Claude API version `2026-10-21` rejects sampling parameters, so Claude calls set `output_config.effort` instead.
 - **Resilience.** Every HTTP and AI node retries 3 times. Per-source calls continue on failure and the source is skipped. If the fact-check itself fails, the report is delivered marked "unverified" with Low confidence. If the PDF fails, the email is sent without it.
@@ -69,7 +69,7 @@ The AI provider is set in the `CONFIG` block of `02 Validate`. The default is **
 |---|---|
 | Orchestration | [n8n](https://n8n.io), self-hosted with Docker (free) |
 | LLM | [Google Gemini](https://aistudio.google.com) free tier by default; any OpenAI-compatible API or the [Claude API](https://docs.anthropic.com) |
-| Web search and extraction | [Tavily](https://tavily.com) free plan (`/search`, `/extract`) |
+| Web search | [SearXNG](https://docs.searxng.org), self-hosted in Docker (free, no key); [Tavily](https://tavily.com) optional |
 | Logging | Google Sheets |
 | Email | Gmail |
 | PDF rendering | [Gotenberg](https://gotenberg.dev), in the same Docker setup |
@@ -93,7 +93,8 @@ researchflow-ai/
 │   └── test-nodes.js      # Runs every Code node against mocked n8n data
 ├── docs/               # Setup guide, Sheets log spec, testing checklist
 ├── samples/            # Sample reports for demos
-├── docker-compose.yml  # Free local n8n + Gotenberg
+├── docker-compose.yml  # Free local n8n + SearXNG + Gotenberg
+├── searxng/            # SearXNG settings (JSON output enabled)
 ├── .env.example        # Keys and settings reference (no real values)
 ├── CLAUDE.md           # Full project spec and working rules
 └── README.md
@@ -102,8 +103,8 @@ researchflow-ai/
 ## Quick start (free)
 
 1. **Start the stack:** `docker compose up -d`, then open <http://localhost:5678>.
-2. **Get free keys:** Gemini from [AI Studio](https://aistudio.google.com) and Tavily from [app.tavily.com](https://app.tavily.com). Neither needs a card.
-3. **Create credentials** in n8n: Header Auth for the LLM (`Authorization: Bearer <Gemini key>`), Tavily (`Authorization: Bearer tvly-...`) and the n8n API (`X-N8N-API-KEY`), plus Google Sheets and Gmail OAuth2.
+2. **Get a free Gemini key** from [AI Studio](https://aistudio.google.com). No card needed. Web search (SearXNG) needs no key.
+3. **Create credentials** in n8n: Header Auth for the LLM (`Authorization: Bearer <Gemini key>`), a placeholder Tavily credential (unused by default) and the n8n API (`X-N8N-API-KEY`), plus Google Sheets and Gmail OAuth2.
 4. **Create the log sheet** with the columns in [`docs/google-sheets-log.md`](docs/google-sheets-log.md) and a tab named `runs`.
 5. **Import** [`workflows/research-pipeline.json`](workflows/research-pipeline.json) and [`workflows/error-handler.json`](workflows/error-handler.json), select credentials, and set `sheet_id` in `02 Validate` and `E03`.
 6. **Set the error workflow** in the main workflow's Settings, test with Quick depth and 3 sources, then **activate**.
@@ -141,7 +142,7 @@ Then re-import the workflow in n8n (credentials need to be selected again after 
 
 ## Limitations
 
-- Report quality depends on what Tavily returns. Niche or very recent topics may produce thin evidence, and the report says so.
+- Report quality depends on what the search engines return. Niche or very recent topics may produce thin evidence, and the report says so.
 - The fact-checker reduces but does not remove the risk of errors. Verify important facts against the linked sources.
 - Paywalled content is skipped, so some authoritative sources may be missing.
 - The error handler needs n8n API access to find the user's email; without it, failures are still logged but no email is sent.
