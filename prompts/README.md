@@ -18,4 +18,4 @@ Prompts 07 and 08 are kept as specs: the workflow uses [`templates/report.html`]
 | 09 | [Failure Email](09-failure-email.md) | Error | fast | low | JSON |
 | 10 | [Insufficient Sources Fallback](10-insufficient-sources-fallback.md) | Score | fast | low | JSON |
 
-JSON outputs are parsed with `parseJson()` in [`code/lib/helpers.js`](../code/lib/helpers.js). For a hand-built node, use [`code/parse-ai-json.js`](../code/parse-ai-json.js).
+JSON outputs are parsed with `parseJson()` in [`code/lib/helpers.js`](../code/lib/helpers.js).
