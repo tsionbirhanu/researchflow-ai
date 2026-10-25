@@ -173,7 +173,27 @@ async function main() {
   };
   console.log('');
   const errorId = await upsert(prepareWorkflow(buildErrorHandler(), creds, { sheetId }));
-  const mainId = await upsert(prepareWorkflow(buildMain(), creds, { sheetId, errorWorkflowId: errorId }));
+
+  // n8n 2.x only accepts an error workflow that has a published version.
+  let errorPublished = false;
+  try {
+    await api('POST', `/workflows/${errorId}/publish`, {});
+    errorPublished = true;
+    console.log('  workflow    AI Research Pipeline v2: Error Handler: published');
+  } catch (e) {
+    console.log(`  workflow    AI Research Pipeline v2: Error Handler: not published yet (${e.message})`);
+  }
+
+  let mainId;
+  let errorLinked = errorPublished;
+  try {
+    mainId = await upsert(prepareWorkflow(buildMain(), creds, { sheetId, errorWorkflowId: errorPublished ? errorId : undefined }));
+  } catch (e) {
+    if (!/error workflow/i.test(e.message)) throw e;
+    errorLinked = false;
+    mainId = await upsert(prepareWorkflow(buildMain(), creds, { sheetId }));
+  }
+  if (errorLinked) console.log('  workflow    error handler linked to the main workflow');
 
   console.log(`
 Done. Two things left, in the n8n UI (${base}):
@@ -184,7 +204,11 @@ Done. Two things left, in the n8n UI (${base}):
 ${manual.length ? `\n  Create these credentials by hand (see docs/setup.md, step 5), then run npm run setup again:\n     ${manual.join(', ')}\n` : ''}
   2. Test: open ${base}/workflow/${mainId} → double-click "01 Form" → Test step,
      submit a topic with Depth = Quick and Number of sources = 3.
-`);
+${errorLinked ? '' : `
+  3. Link the error workflow (after step 1):
+     open "AI Research Pipeline v2: Error Handler" → Publish (top right),
+     then run npm run setup again, or set it in the main workflow: ⋯ → Settings → Error Workflow.
+`}`);
 }
 
 if (require.main === module) {
