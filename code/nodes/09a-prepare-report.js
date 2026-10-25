@@ -17,8 +17,11 @@ const body = md
   })
   .trim();
 
+// "2026-05-21T00:00:00" -> "2026-05-21"; free-text dates ("May 2025") pass through.
+const shortDate = d => (/^\d{4}-\d{2}-\d{2}T/.test(String(d || '')) ? String(d).slice(0, 10) : d);
+
 const sources = analyses.map(a => {
-  const meta = [a.publisher_or_author, a.published_date].filter(Boolean).join(', ');
+  const meta = [a.publisher_or_author, shortDate(a.published_date)].filter(Boolean).join(', ');
   return `${a.source_id}. ${a.title}${meta ? `, ${meta}` : ''}. [${a.url}](${a.url})`;
 }).join('\n');
 

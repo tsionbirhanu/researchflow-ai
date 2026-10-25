@@ -59,6 +59,8 @@ A self-hosted n8n needs its own Google OAuth app. It is free:
    run_id	timestamp	email	topic	depth	style	num_sources_requested	sources_used	confidence	verdict	status	duration_sec	error_message
    ```
 
+   **Check that it split into 13 columns:** click A1. The formula bar must show only `run_id`. If it shows the whole line, use **Data → Split text to columns** with separator **Tab**. Otherwise logging fails with "Column names were updated after the node's setup".
+
 3. Copy the sheet ID from the URL: `https://docs.google.com/spreadsheets/d/<THIS PART>/edit`.
 
 ## 5. Automatic setup (recommended)
@@ -140,4 +142,5 @@ Then change the **LLM API** credential to Name `x-api-key`, Value `<your Claude 
 | Email arrives without a PDF | Gotenberg not reachable | Run `docker compose ps`; `pdf_url` must be `http://gotenberg:3000/forms/chromium/convert/html` |
 | Google sign-in says "access blocked" | You're not a test user | Add your Gmail under OAuth consent screen → Test users |
 | Sheets error "sheet not found" | Tab name mismatch | Name the tab `runs`, or change `sheet_tab` |
+| Sheet stays empty; node output says "Column names were updated after the node's setup" | All headers were pasted into cell A1 | Select A1 → Data → Split text to columns → Tab |
 | Failure email never arrives | `E02` can't read executions | Check the n8n API credential; the run is still logged as `failed` |

@@ -260,6 +260,12 @@ test('09a rebuilds Sources from real URLs and drops invalid citations', async ()
   assert.ok(!REPORT.markdown.includes('[9]'));
   assert.ok(!REPORT.markdown.includes('fake.example'), 'model-written source list removed');
   assert.ok(REPORT.markdown.includes('[https://c.com](https://c.com)'));
+
+  const dated = ANALYSES.map((a, i) => ({ ...a, published_date: i ? 'May 2025' : '2026-05-21T00:00:00' }));
+  const [d] = await run(MAIN, '09a Prepare Report', [verification],
+    { '08c Parse Verification': verification, '06c Collect Analyses': { analyses: dated }, '03c Parse Plan': PLAN });
+  assert.ok(d.json.markdown.includes(', 2026-05-21. ') && !d.json.markdown.includes('T00:00:00'), 'ISO dates shortened');
+  assert.ok(d.json.markdown.includes(', May 2025. '), 'free-text dates kept');
 });
 
 test('09c builds the HTML page and the PDF input file', async () => {

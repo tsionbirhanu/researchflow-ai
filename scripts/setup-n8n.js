@@ -195,6 +195,14 @@ async function main() {
   }
   if (errorLinked) console.log('  workflow    error handler linked to the main workflow');
 
+  // Publish the main workflow too, so the live form runs the version just imported.
+  try {
+    await api('POST', `/workflows/${mainId}/publish`, {});
+    console.log('  workflow    AI Research Pipeline v2: published');
+  } catch (e) {
+    console.log(`  workflow    AI Research Pipeline v2: not published (${e.message}); publish it in the editor after testing`);
+  }
+
   console.log(`
 Done. Two things left, in the n8n UI (${base}):
 
