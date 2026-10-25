@@ -61,7 +61,21 @@ A self-hosted n8n needs its own Google OAuth app. It is free:
 
 3. Copy the sheet ID from the URL: `https://docs.google.com/spreadsheets/d/<THIS PART>/edit`.
 
-## 5. Create credentials in n8n
+## 5. Automatic setup (recommended)
+
+1. Open `.env` (copy it from `.env.example` if it doesn't exist) and fill in `N8N_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `GOOGLE_SHEET_ID`.
+2. Run:
+
+   ```bash
+   npm run setup
+   ```
+
+   This creates all five credentials, imports both workflows with credentials attached and your Sheet ID filled in, and links the error workflow. Running it again updates the same workflows.
+3. In n8n, open **Credentials → Google Sheets → Sign in with Google**, allow access, and **Save**. Do the same for **Gmail**. Google shows "Google hasn't verified this app" because it's your own app; click **Continue**.
+
+Then skip to step 7. Steps 5b and 6 are the manual way, if the script can't run.
+
+## 5b. Create credentials in n8n (manual alternative)
 
 Go to **Credentials → Add credential**:
 
@@ -73,7 +87,7 @@ Go to **Credentials → Add credential**:
 | Google Sheets | Google Sheets OAuth2 API | Client ID + secret from step 3, then **Sign in with Google** |
 | Gmail | Gmail OAuth2 | Same Client ID + secret, then **Sign in with Google** |
 
-## 6. Import and configure the workflows
+## 6. Import and configure the workflows (manual alternative)
 
 1. **Workflows → Add workflow → ⋯ → Import from File**, then pick `workflows/research-pipeline.json`. Repeat for `workflows/error-handler.json`.
 2. Open each node that shows a warning and select its credential:

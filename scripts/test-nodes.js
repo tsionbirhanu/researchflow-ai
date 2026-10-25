@@ -293,6 +293,36 @@ test('E03 still logs when the execution lookup failed', async () => {
   assert.equal(out.json.run_id, 'exec_7');
 });
 
+test('setup script attaches the right credential to every node and fills the Sheet ID', () => {
+  const { prepareWorkflow, sheetIdFrom } = require('./setup-n8n');
+  const creds = Object.fromEntries(['llm', 'tavily', 'n8nApi', 'sheets', 'gmail'].map(k => [k, { id: `id-${k}`, name: k }]));
+  const sheetId = sheetIdFrom('https://docs.google.com/spreadsheets/d/1AbC_def-GHI123456789xyz/edit?gid=0#gid=0');
+  assert.equal(sheetId, '1AbC_def-GHI123456789xyz');
+
+  const main = prepareWorkflow(MAIN, creds, { sheetId, errorWorkflowId: 'err-1' });
+  const byName = Object.fromEntries(main.nodes.map(n => [n.name, n]));
+  assert.equal(byName['07b AI: Write Report'].credentials.httpHeaderAuth.id, 'id-llm');
+  assert.equal(byName['04b Tavily Search'].credentials.httpHeaderAuth.id, 'id-tavily');
+  assert.equal(byName['09h Log Completed'].credentials.googleSheetsOAuth2Api.id, 'id-sheets');
+  assert.equal(byName['09f Email Report + PDF'].credentials.gmailOAuth2.id, 'id-gmail');
+  assert.ok(!byName['04b2 SearXNG Search'].credentials, 'SearXNG needs no credential');
+  assert.ok(byName['02 Validate'].parameters.jsCode.includes(`sheet_id: '${sheetId}'`));
+  assert.equal(main.settings.errorWorkflow, 'err-1');
+  assert.deepEqual(Object.keys(main).sort(), ['connections', 'name', 'nodes', 'settings'], 'only fields the n8n API accepts');
+
+  const err = prepareWorkflow(ERR, creds, { sheetId });
+  const e = Object.fromEntries(err.nodes.map(n => [n.name, n]));
+  assert.equal(e['E02 Fetch Failed Execution'].credentials.httpHeaderAuth.id, 'id-n8nApi');
+  assert.ok(e['E03 Build Failure Context'].parameters.jsCode.includes(`sheet_id: '${sheetId}'`));
+
+  for (const wf of [main, err]) {
+    for (const n of wf.nodes) {
+      const needs = /googleSheets|gmail/.test(n.type) || n.parameters.genericAuthType === 'httpHeaderAuth';
+      if (needs) assert.ok(n.credentials, `${n.name} has no credential`);
+    }
+  }
+});
+
 test('AI nodes take URL, headers and body from the item; per-item calls are rate-limited', () => {
   for (const wf of [MAIN, ERR]) {
     for (const n of wf.nodes.filter(n => / AI: /.test(n.name))) {

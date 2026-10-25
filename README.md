@@ -90,7 +90,8 @@ researchflow-ai/
 ├── schemas/            # JSON shapes for planner, scorer, analyzer and verifier output
 ├── scripts/
 │   ├── build-workflow.js  # Assembles workflows/*.json from the sources above
-│   └── test-nodes.js      # Runs every Code node against mocked n8n data
+│   ├── test-nodes.js      # Runs every Code node against mocked n8n data
+│   └── setup-n8n.js       # One-command setup: credentials + workflows via the n8n API
 ├── docs/               # Setup guide, Sheets log spec, testing checklist
 ├── samples/            # Sample reports for demos
 ├── docker-compose.yml  # Free local n8n + SearXNG + Gotenberg
@@ -104,10 +105,10 @@ researchflow-ai/
 
 1. **Start the stack:** `docker compose up -d`, then open <http://localhost:5678>.
 2. **Get a free Gemini key** from [AI Studio](https://aistudio.google.com). No card needed. Web search (SearXNG) needs no key.
-3. **Create credentials** in n8n: Header Auth for the LLM (`Authorization: Bearer <Gemini key>`), a placeholder Tavily credential (unused by default) and the n8n API (`X-N8N-API-KEY`), plus Google Sheets and Gmail OAuth2.
-4. **Create the log sheet** with the columns in [`docs/google-sheets-log.md`](docs/google-sheets-log.md) and a tab named `runs`.
-5. **Import** [`workflows/research-pipeline.json`](workflows/research-pipeline.json) and [`workflows/error-handler.json`](workflows/error-handler.json), select credentials, and set `sheet_id` in `02 Validate` and `E03`.
-6. **Set the error workflow** in the main workflow's Settings, test with Quick depth and 3 sources, then **activate**.
+3. **Create a Google OAuth client** and the log sheet (columns in [`docs/google-sheets-log.md`](docs/google-sheets-log.md), tab named `runs`).
+4. **Fill in `.env`** (copy `.env.example`): n8n API key, Gemini key, Google Client ID and secret, Sheet ID.
+5. **Run `npm run setup`.** It creates the credentials, imports both workflows with everything attached, and links the error workflow.
+6. In n8n, **Sign in with Google** on the Google Sheets and Gmail credentials, test the form with Quick depth and 3 sources, then **activate**.
 
 Full walkthrough, including the free Google OAuth setup and troubleshooting: [`docs/setup.md`](docs/setup.md).
 

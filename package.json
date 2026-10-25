@@ -5,7 +5,10 @@
   "description": "AI Research Pipeline v2: n8n workflow build and tests",
   "scripts": {
     "build": "node scripts/build-workflow.js",
-    "test": "node --test scripts/test-nodes.js"
+    "test": "node --test scripts/test-nodes.js",
+    "setup": "node scripts/setup-n8n.js"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }
