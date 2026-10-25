@@ -143,4 +143,5 @@ Then change the **LLM API** credential to Name `x-api-key`, Value `<your Claude 
 | Google sign-in says "access blocked" | You're not a test user | Add your Gmail under OAuth consent screen → Test users |
 | Sheets error "sheet not found" | Tab name mismatch | Name the tab `runs`, or change `sheet_tab` |
 | Sheet stays empty; node output says "Column names were updated after the node's setup" | All headers were pasted into cell A1 | Select A1 → Data → Split text to columns → Tab |
+| Failure email never arrives after a test run | n8n runs the Error Workflow only for production runs, not "Test step" | Submit through the form's Production URL |
 | Failure email never arrives | `E02` can't read executions | Check the n8n API credential; the run is still logged as `failed` |
