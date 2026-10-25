@@ -6,7 +6,8 @@ const CONFIG = {
   llm: {
     provider: 'openai',
     url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-    models: { fast: 'gemini-flash-lite-latest', strong: 'gemini-flash-latest' },
+    // fallback: used for planning and writing when the main model is overloaded (HTTP 503)
+    models: { fast: 'gemini-flash-lite-latest', strong: 'gemini-flash-latest', fallback: 'gemini-flash-lite-latest' },
   },
   // Groq (free tier):  { provider: 'openai', url: 'https://api.groq.com/openai/v1/chat/completions', models: { fast: '...', strong: '...' } }
   // Claude (paid):     { provider: 'claude', models: { fast: 'claude-haiku-5-5', strong: 'claude-sonnet-5-5' } }

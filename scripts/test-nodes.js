@@ -231,6 +231,28 @@ test('07a uses the strong model; Claude adds server-side fallback', async () => 
   assert.ok(!('thinking' in cl.json.request) && !('temperature' in cl.json.request));
 });
 
+test('07b3 resends the write request on the fallback model', async () => {
+  const [built] = await run(MAIN, '07a Build Write Request', [{ analyses: ANALYSES }], { '02 Validate': RUN, '03c Parse Plan': PLAN });
+  const [out] = await run(MAIN, '07b3 Write Fallback Request', [{ error: { message: 'Service unavailable' } }],
+    { '02 Validate': RUN, '07a Build Write Request': built.json });
+  assert.equal(out.json.request.model, 'gemini-flash-lite-latest');
+  assert.deepEqual(out.json.request.messages, built.json.request.messages, 'same prompt');
+  assert.equal(out.json.request_url, built.json.request_url);
+
+  const conn = MAIN.connections['07b AI: Write Report'].main[0][0].node;
+  assert.equal(conn, '07b2 Write Failed?');
+  assert.equal(MAIN.nodes.find(n => n.name === '07b AI: Write Report').onError, 'continueRegularOutput');
+  assert.equal(MAIN.connections['07b2 Write Failed?'].main[1][0].node, '07c Extract Draft', 'success skips the fallback');
+});
+
+test('03b3 resends the plan request on the fallback model', async () => {
+  const [built] = await run(MAIN, '03a Build Plan Request', [{}], { '02 Validate': RUN });
+  const [out] = await run(MAIN, '03b3 Plan Fallback Request', [{ error: { message: '503' } }],
+    { '02 Validate': RUN, '03a Build Plan Request': built.json });
+  assert.equal(out.json.request.model, 'gemini-flash-lite-latest');
+  assert.equal(MAIN.connections['03b4 AI: Plan (fallback model)'].main[0][0].node, '03c Parse Plan');
+});
+
 test('07c refuses a truncated report from either provider', async () => {
   await assert.rejects(run(MAIN, '07c Extract Draft', [{ ...claudeText('# T\n' + 'x'.repeat(300)), stop_reason: 'max_tokens' }]), /cut off/);
   await assert.rejects(run(MAIN, '07c Extract Draft', [openaiText('# T\n' + 'x'.repeat(300), 'length')]), /cut off/);
@@ -334,7 +356,10 @@ test('AI nodes take URL, headers and body from the item; per-item calls are rate
     for (const n of wf.nodes.filter(n => / AI: /.test(n.name))) {
       assert.equal(n.parameters.url, '={{ $json.request_url }}', n.name);
       assert.ok(!/temperature|top_p|top_k/.test(JSON.stringify(n.parameters)), `${n.name} hardcodes sampling params`);
-      if (n.onError) assert.equal(n.parameters.options.batching.batch.batchSize, 1, n.name);
     }
+  }
+  for (const name of ['05b AI: Score', '06b AI: Analyze', '08b AI: Fact-Check', '08f AI: Revise']) {
+    const n = MAIN.nodes.find(x => x.name === name);
+    assert.equal(n.parameters.options.batching.batch.batchSize, 1, `${name} must run one call at a time`);
   }
 });
